@@ -47,6 +47,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      release-id: ${{ steps.draft.outputs.release-id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -54,7 +56,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '26'
-      - run: node scripts/release.mjs draft
+      - id: draft
+        run: node scripts/release.mjs draft
         env:
           GH_TOKEN: ${{ github.token }}
   native:
@@ -74,33 +77,17 @@ jobs:
         with:
           node-version: '26'
           cache: npm
-      - run: npm ci
-      - run: node scripts/ci-core.mjs import
-        env:
-          BEND_MODULE: ${{ needs.core.outputs.module }}
-          BEND_PROVENANCE: ${{ needs.core.outputs.provenance }}
-      - run: npm run check:build
-      - run: npm test
-      - if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes xvfb libgtk-3-0t64 libnss3 libasound2t64
-          sudo chown root:root node_modules/electron/dist/chrome-sandbox
-          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
-      - if: runner.os == 'Linux'
-        run: xvfb-run -a npm run test:tray
-      - if: runner.os != 'Linux'
-        run: npm run test:tray
-      - run: npm run package
-      - run: node scripts/packaged-check.mjs --headless
-      - run: node scripts/archive.mjs
-      - run: node scripts/archive-check.mjs
+      - uses: ./.github/actions/qualify-native
+        with:
+          module: ${{ needs.core.outputs.module }}
+          provenance: ${{ needs.core.outputs.provenance }}
       - name: Upload qualified assets directly to the draft
         run: node scripts/release.mjs upload-native
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ needs.draft.outputs.release-id }}
   publish:
-    needs: [core, native]
+    needs: [core, draft, native]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -113,6 +100,7 @@ jobs:
         with:
           node-version: '26'
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
       - run: npm ci --prefix bootstrap --ignore-scripts
       - name: Pack the public bootstrap
         working-directory: bootstrap
@@ -123,6 +111,8 @@ jobs:
         run: node scripts/release.mjs publish
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ needs.draft.outputs.release-id }}
+          BEND_PROVENANCE: ${{ needs.core.outputs.provenance }}
       - name: Publish npm package
         run: node scripts/release.mjs npm
         env:

@@ -13,12 +13,12 @@ Run `npm run check`, `npm run proof:kernel`, and the affected native/package che
 An authorized maintainer creates and pushes the exact release tag:
 
 ```sh
-git tag v0.2.0-preview.1
-git push origin v0.2.0-preview.1
+git tag v0.2.0-preview.2
+git push origin v0.2.0-preview.2
 gh run list --workflow release.yml
 ```
 
-The tag must match both product versions. `.github/workflows/release.yml` rejects a branch dispatch, an unqualified source, or a stable version. It repeats security/proof/native checks, compiles the Bend core once, and uploads qualified native archives directly to a draft GitHub Release. After all three targets succeed, it downloads and verifies the complete inventory, attaches the bootstrap npm tarball, uploads `release.json` last, publishes the GitHub preview, and publishes npm with the `preview` dist-tag.
+The tag must match both product versions. `.github/workflows/release.yml` rejects a branch dispatch, an unqualified source, or a stable version. It repeats security and proof checks, compiles the Bend core once, and uses the same native checks as branch CI. The draft job passes its release ID to the qualified native upload jobs. After all three targets succeed, the publish job downloads and verifies the complete inventory, attaches the bootstrap npm tarball, uploads `release.json` last, publishes the GitHub preview, and publishes npm with the `preview` dist-tag.
 
 The repository can remain private for a preview, requiring recipient gh reader access. Public source visibility is a separate consequential decision. Make that decision before triggering the release so the workflow's npm provenance policy reflects the actual source visibility. Public delivery must pass an unauthenticated recipient installation.
 
