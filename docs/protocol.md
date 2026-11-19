@@ -28,7 +28,7 @@ Domain tool errors use `isError: true` with text JSON `{ "error": { "code": "…
 
 Each bridge holds one private connection to the native host. It maintains presence automatically and reconnects after transport loss, using its in-memory resume token. Reconnection does not repeat a take or restore revoked access. A restarted host refuses the old resume token; the bridge registers a new session, then returns the resulting identity in `you`. A stale token from a previous grant or host instance is still invalid.
 
-EOF on the bridge's stdin and SIGINT/SIGTERM close its host connection. A killed bridge loses its socket through OS process cleanup. This says nothing about a TUI exit when another process still owns the bridge; the [lifecycle investigation](product.md#lifecycle-investigation-and-decision) qualifies that distinction. A bridge with a live connection does not automatically renew desktop access.
+EOF on the bridge's stdin and SIGINT/SIGTERM close its host connection. A killed bridge loses its socket through OS process cleanup. This says nothing about a TUI exit when another process still owns the bridge; [bridge lifetime](product.md#bridge-lifetime) explains that distinction. A bridge with a live connection does not automatically renew desktop access.
 
 ## Local host boundary
 

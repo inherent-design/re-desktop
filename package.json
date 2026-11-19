@@ -2,6 +2,14 @@
   "name": "re-desktop",
   "version": "0.1.0",
   "description": "A native desktop availability light for people and agents, powered by Bend",
+  "homepage": "https://github.com/inherent-design/re-desktop#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inherent-design/re-desktop.git"
+  },
+  "bugs": {
+    "url": "https://github.com/inherent-design/re-desktop/issues"
+  },
   "type": "module",
   "private": true,
   "license": "MIT",

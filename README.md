@@ -1,10 +1,12 @@
 # re:desktop
 
-A shared desktop availability light for people and cooperating agents, built with Bend. A native tray/menu bar app shows who has access; independent MCP sessions share a queue and can talk about yielding.
+A desktop availability indicator for people and cooperating agents, with a native tray/menu bar app and an MCP server. Bend implements access scheduling, lease expiry, and human pause.
 
-Green means available. Solid red means paused by you. A red ring with a white center means a session has access. The menu shows session names, IDs, workspaces and the numbered waiting queue. Access is voluntary; people retain ordinary desktop control.
+The menu shows the current holder, subscribed sessions, workspaces, and a numbered waiting queue. Green means available, solid red means paused by you, and a red ring with a white center means an agent has access. Coordination is voluntary; people retain ordinary desktop control.
 
-## Run locally
+The project is experimental. Source builds and MCP interoperability are tested; the bootstrap, automatic host startup, API negotiation, and release installation workflow are under development. See [verification](docs/verification.md) for the tested scope and [distribution](docs/distribution.md) for the accepted direction.
+
+## Source build
 
 On macOS or Linux with Node.js 26 and npm:
 
@@ -15,7 +17,7 @@ npm run check
 npm start
 ```
 
-The app starts paused. Choose **Allow agent access** from its tray menu. **Pause agent access** revokes current cooperative access. Confirmed disconnection releases access immediately; a 30-second lease also handles a bridge that remains alive after its agent stops. Reconnection never silently restores old access.
+Keep the app running before using its MCP tools. It starts paused; choose **Allow agent access** from the tray menu. **Pause agent access** ends current cooperative access and prevents further grants. Confirmed disconnection releases access immediately, with a 30-second lease covering a bridge that remains alive after its agent stops.
 
 To build the native app:
 
@@ -23,9 +25,9 @@ To build the native app:
 npm run package
 ```
 
-On macOS, open `dist/re-desktop-darwin-arm64/re-desktop.app` (or the x64 package). Windows uses the same emitted Bend module from a matching macOS/Linux build; see [development](docs/development.md). Linux needs a desktop with tray support.
+On macOS arm64, open `dist/re-desktop-darwin-arm64/re-desktop.app`. Windows builds consume the matching emitted Bend module from macOS or Linux. Linux requires a supported desktop indicator and Chromium sandbox setup. [Development](docs/development.md) describes the toolchain and platform constraints.
 
-## Connect Codex
+## MCP configuration
 
 Generate the exact TOML for this checkout:
 
@@ -33,21 +35,23 @@ Generate the exact TOML for this checkout:
 node scripts/codex-config.mjs
 ```
 
-Add that output to your Codex MCP configuration, then reload MCP servers or start a new session. This prints configuration; it does not edit your account settings. For a standalone native package, generate its bundled-runtime configuration instead:
+Add the output to your Codex MCP configuration, then reload MCP servers or start a new session. The command prints configuration without editing account settings. For a native package, generate configuration using its bundled runtime:
 
 ```sh
 node scripts/codex-config.mjs --packaged dist/re-desktop-darwin-arm64
 ```
 
-An agent subscribes with `desktop_subscribe`, checks `desktop_status`, then calls `desktop_take` just before desktop work. It proceeds when non-null `holder.session_id` matches `you.session_id`, renews using `desktop_heartbeat` before 30 seconds, and releases with `desktop_release`. Every grant provides its own `lease.token`, passed as `lease_token` when renewing or releasing. Waiting agents get a one-based queue position. Peer messages can ask a holder to yield but never preempt it. MCP discovery supplies the workflow, described parameters and typed responses. [Protocol](docs/protocol.md) describes the nine tools and reconnect behavior.
+An agent subscribes, takes access immediately before desktop work, proceeds when the non-null holder matches its identity, and releases when finished. It must explicitly renew before its 30-second lease expires. MCP discovery supplies the workflow, described parameters, and typed responses; [protocol](docs/protocol.md) owns the tool and response contracts. The current bridge does not start the native host automatically.
 
-## Explore
+## Documentation
 
-- [Product and UX contract](docs/product.md), including the measured TUI/server lifetime distinction.
-- [Related products and architecture investigation](docs/research.md).
-- [Bend tutorial, proof boundaries and development commands](docs/development.md).
-- [Executed checks and remaining platform/release gates](docs/verification.md).
+- [Documentation index](docs/README.md)
+- [Desktop behavior](docs/product.md)
+- [MCP protocol](docs/protocol.md)
+- [Development and Bend](docs/development.md)
+- [Verification](docs/verification.md)
+- [Distribution design](docs/distribution.md)
 
-Bend implements the running coordinator in [core/access.bend](core/access.bend). [LAWS.bend](LAWS.bend) and [PROOF.bend](PROOF.bend) state and check six specific invariants. The native host and MCP adapters have separate runtime checks; the proof does not cover the whole operating system or other desktop tools.
+Bend implements the running coordinator in [core/access.bend](core/access.bend). [LAWS.bend](LAWS.bend) and [PROOF.bend](PROOF.bend) check six specific invariants. Host, transport, native UI, and compiler behavior require separate execution tests.
 
-Project origin: `gh.mannie-exe:mannie-exe/re-desktop.git`. Personal investigation/implementation intent lives in Moment at `~/.moment/intents/re-desktop.md`; the repository owns the product specifications above.
+Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities through [SECURITY.md](SECURITY.md). The project is maintained at [inherent-design/re-desktop](https://github.com/inherent-design/re-desktop) and licensed under [MIT](LICENSE), with [third-party notices](THIRD_PARTY_NOTICES.md).

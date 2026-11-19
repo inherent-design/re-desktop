@@ -67,10 +67,10 @@ The macOS native UI probe compiles `scripts/macos-menu.swift` and uses Accessibi
 
 Linux needs Chromium's sandbox helper correctly installed. CI downloads the pinned Electron binary, then sets its `chrome-sandbox` owner to root and mode to 4755 inside the disposable runner. It does not disable sandboxing. A tar distribution's installer/operator must set the same ownership and mode on the extracted helper before GUI startup; the bundled MCP Node mode does not launch Chromium. This manual Linux installation step remains a packaging polish item.
 
-Generated verification captures belong in ignored `artifacts/`. Maintained scope and limitations belong in [verification](verification.md). Personal execution checkpoints remain in Moment, outside the repository.
+Generated verification captures belong in ignored `artifacts/`. Maintained scope and limitations belong in [verification](verification.md).
 
 ## Distribution
 
 Electron Packager creates a native package for the current host in `dist/`. The emitted core, application source and production MCP dependencies live in its `app.asar`. Electron's bundled Node mode can run the packaged MCP entry without an additional Node installation. The repository's source-mode MCP entry uses the development Node executable.
 
-The GitHub workflow compiles/proves Bend on Linux, passes the small compressed module and provenance through job outputs, validates it on macOS/Windows/Linux, runs protocol and native smoke checks, and packages each native target. Branch CI builds and verifies packages without retaining large archives. A deliberately pushed `v*` tag uploads release artifacts and creates a draft after the matrix passes; that path requires available GitHub artifact storage. See [verification](verification.md) for actual hosted results. Signing, notarization and polished installers are later release gates.
+The GitHub workflow compiles/proves Bend on Linux, passes the small compressed module and provenance through job outputs, validates it on macOS/Windows/Linux, runs protocol and native smoke checks, and packages each native target. Branch CI builds and verifies packages without retaining large archives. The current tag path creates a draft release through Actions artifacts and has not been qualified. [Distribution](distribution.md) owns the accepted replacement pipeline, bootstrap, and compatibility design. [Verification](verification.md) owns executed results and release limits.
