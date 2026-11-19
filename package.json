@@ -1,0 +1,35 @@
+{
+  "name": "re-desktop",
+  "version": "0.1.0",
+  "description": "A native desktop availability light for people and agents, powered by Bend",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "main": "src/tray.mjs",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "setup:bend": "node scripts/setup-bend.mjs",
+    "setup:kernel": "node scripts/setup-kernel.mjs",
+    "proof": "node scripts/bend.mjs PROOF.bend",
+    "proof:kernel": "node scripts/bend.mjs PROOF.bend --verdict",
+    "build": "node scripts/build.mjs",
+    "check:build": "node scripts/check-build.mjs",
+    "test": "node --test",
+    "check": "npm run proof && npm run build && npm test",
+    "start": "electron .",
+    "mcp": "node src/mcp.mjs",
+    "package": "node scripts/package.mjs",
+    "test:tray": "node scripts/tray-smoke.mjs",
+    "test:codex": "node scripts/codex-check.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.3.0",
+    "electron": "45.4.1"
+  }
+}
