@@ -1,7 +1,7 @@
-import { mkdir, lstat, readFile, writeFile, rename, rm, readdir, readlink, chmod } from 'node:fs/promises';
+import { mkdir, lstat, readFile, writeFile, rename, rm, readdir, readlink, chmod, realpath } from 'node:fs/promises';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
-import { join, posix, isAbsolute } from 'node:path';
+import { join, posix, isAbsolute, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pipeline } from 'node:stream/promises';
@@ -73,6 +73,9 @@ const hashFile = async path => {
 };
 const safePath = path => typeof path === 'string' && path.length > 0 && path.length <= 2048 && !path.includes('\\') && !path.includes('\0') && !path.includes(':') && !path.startsWith('/') && path.split('/').every(part => part && part !== '.' && part !== '..' && !/[. ]$/.test(part));
 export async function inventory(root, prefix = '') {
+  const rootStat = await lstat(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) throw failure('ARCHIVE_INVALID', 'Program root must be a regular directory.');
+  const canonicalRoot = await realpath(root);
   const result = [];
   for (const name of (await readdir(join(root, prefix))).sort()) {
     const path = prefix ? `${prefix}/${name}` : name;
@@ -81,6 +84,10 @@ export async function inventory(root, prefix = '') {
     if (stat.isSymbolicLink()) {
       const link = await readlink(join(root, path));
       if (isAbsolute(link) || link.includes('\\') || !safePath(posix.normalize(posix.join(posix.dirname(path), link)))) throw failure('ARCHIVE_INVALID', 'A program link escapes its generation.');
+      let destination;
+      try { destination = relative(canonicalRoot, await realpath(join(root, path))); }
+      catch { throw failure('ARCHIVE_INVALID', 'A program link is dangling or cyclic.'); }
+      if (isAbsolute(destination) || destination === '..' || destination.startsWith('../') || destination.startsWith('..\\')) throw failure('ARCHIVE_INVALID', 'A resolved program link escapes its generation.');
       result.push({ path, link });
     } else if (stat.isDirectory()) result.push({ path, directory: true }, ...await inventory(root, path));
     else if (stat.isFile()) result.push({ path, size: stat.size, sha256: await hashFile(join(root, path)), executable: process.platform !== 'win32' && !!(stat.mode & 0o111) });

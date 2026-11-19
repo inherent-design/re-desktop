@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { create } from 'tar';
-import { ProgramStore, validateManifest } from '../bootstrap/lib/store.mjs';
+import { ProgramStore, validateManifest, inventory } from '../bootstrap/lib/store.mjs';
 import api from '../api.json' with { type: 'json' };
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
@@ -98,4 +98,18 @@ test('a killed cache writer leaves no executable generation and the next prepara
   assert.equal(await store.cached(f.version), null);
   assert.ok(await store.prepare(f.version));
   assert.equal(f.count(), 1);
+});
+
+test('individually internal symlinks cannot combine into a resolved path outside the program', async t => {
+  if (process.platform === 'win32') { t.skip('Unprivileged Windows symlink creation depends on developer mode'); return; }
+  const root = await mkdtemp(join(tmpdir(), 'rd-links-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const program = join(root, 'program');
+  await mkdir(join(program, 'a/b'), { recursive: true });
+  await mkdir(join(program, 'X'));
+  await writeFile(join(root, 'outside'), 'untouched');
+  await symlink('../../X', join(program, 'a/b/c'));
+  await symlink('c/../../outside', join(program, 'a/b/escape'));
+  await assert.rejects(inventory(program), { code: 'ARCHIVE_INVALID' });
+  assert.equal(await readFile(join(root, 'outside'), 'utf8'), 'untouched');
 });

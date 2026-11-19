@@ -10,6 +10,7 @@ Use documentation from the source revision or release you run. Main can describe
 | [Development and Bend](development.md) | Toolchain, Bend integration, proofs, and test commands |
 | [Verification](verification.md) | Executed environments, evidence, and limits |
 | [Distribution](distribution.md) | Bootstrap, API compatibility, program store, and release delivery |
+| [Publishing a preview](releasing.md) | Maintainer release procedure, npm credentials, retries, and recipient checks |
 | [Research](research.md) | Product comparisons and architecture sources |
 | [Contributing](../CONTRIBUTING.md) | Changes, checks, and pull requests |
 | [Security](../SECURITY.md) | Vulnerability reporting |
