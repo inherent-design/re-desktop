@@ -1,6 +1,11 @@
 import Foundation
 import ApplicationServices
 
+if CommandLine.arguments.count == 2 && CommandLine.arguments[1] == "--check-accessibility" {
+  print(AXIsProcessTrusted() ? "accessibility_available" : "accessibility_unavailable")
+  exit(AXIsProcessTrusted() ? 0 : 3)
+}
+
 // Only inspect and activate a menu belonging to the explicit test app PID.
 func attr(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
   var value: CFTypeRef?
@@ -33,7 +38,7 @@ func click(_ point: CGPoint) {
     event?.post(tap: .cghidEventTap)
   }
 }
-guard CommandLine.arguments.count == 3, let pid = Int32(CommandLine.arguments[1]) else { exit(2) }
+guard (CommandLine.arguments.count == 3 || (CommandLine.arguments.count == 4 && CommandLine.arguments[3] == "--select-only")), let pid = Int32(CommandLine.arguments[1]) else { exit(2) }
 guard AXIsProcessTrusted() else { print("accessibility_unavailable"); exit(3) }
 let app = AXUIElementCreateApplication(pid)
 AXUIElementSetMessagingTimeout(app, 0.5)
@@ -48,7 +53,7 @@ func restorePointer() {
     CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: original, mouseButton: .left)?.post(tap: .cghidEventTap)
   }
 }
-click(statusPoint)
+if !CommandLine.arguments.contains("--select-only") { click(statusPoint) }
 var observed = "not_found"
 for _ in 0..<30 {
   if let item = find(bar, CommandLine.arguments[2]) ?? find(app, CommandLine.arguments[2]) {

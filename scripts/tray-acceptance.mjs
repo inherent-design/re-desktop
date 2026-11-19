@@ -22,11 +22,14 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
   report.checks.push('Native Menu built with paused startup state');
   if (process.platform === 'darwin') {
     try {
-      const native = await execute(resolve('build/macos-menu'), [String(process.pid), 'Allow agent access'], { timeout: 5000 });
+      await execute(resolve('build/macos-menu'), ['--check-accessibility'], { timeout: 5000 });
+      const selection = execute(resolve('build/macos-menu'), [String(process.pid), 'Allow agent access', '--select-only'], { timeout: 5000 });
+      tray.popUpContextMenu(getMenu());
+      const native = await selection;
       report.accessibility = native.stdout.trim();
       for (let attempt = 0; attempt < 20 && host.coordinator.snapshot().user_blocked; attempt++) await delay(50);
       assert.equal(host.coordinator.snapshot().user_blocked, false, native.stdout);
-      report.checks.push('macOS native input clicked the status item and Allow agent access using verified Accessibility bounds');
+      report.checks.push('Native Tray API opened the context menu and Accessibility pressed its owned Allow agent access item');
     } catch (error) {
       if (error.code !== 3) throw error;
       report.accessibility = 'unavailable; native menu action invoked through Electron';
