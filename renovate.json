@@ -15,7 +15,12 @@
   },
   "lockFileMaintenance": { "enabled": true },
   "packageRules": [
-    { "matchManagers": ["github-actions"], "pinDigests": true },
+    {
+      "matchManagers": ["mise"],
+      "matchPackageNames": ["aquasecurity/trivy"],
+      "overrideDatasource": "git-tags",
+      "overridePackageName": "https://github.com/aquasecurity/trivy.git"
+    },
     { "matchPackageNames": ["tar"], "groupName": "archive handling" },
     { "matchDepTypes": ["devDependencies"], "matchUpdateTypes": ["patch", "minor"], "groupName": "development dependencies" }
   ]
