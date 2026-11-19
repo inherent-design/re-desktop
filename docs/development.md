@@ -21,7 +21,7 @@ The installers put verified release archives under ignored `.tools/`; they do no
 
 The JavaScript adapter owns effects: socket credentials, connection attribution, session names/workspaces, bounded mailboxes, UUIDs, clocks and OS events. The tray presents snapshots and human actions. The MCP bridge supplies stdio, schemas, reconnection and resource notifications. Those adapters need execution tests: Bend proofs do not verify their parsing, operating-system behavior or SDK integration.
 
-The build writes SHA-256 provenance for the Bend source and emitted module. `npm run check:build` refuses stale or altered output. Windows consumes the checked build artifact produced by macOS/Linux; it does not use another implementation. The compiler installer currently supports macOS/Linux on arm64 and x64. On Windows, obtain `build/` from the matching CI run or build it on another supported host at the same source revision.
+The build writes SHA-256 provenance for the Bend source and emitted module. `npm run check:build` refuses stale or altered output. Windows consumes the checked build artifact produced by macOS/Linux; it does not use another implementation. The compiler installer currently supports macOS/Linux on arm64 and x64. For a local Windows build, copy `build/` from a supported host at the same source revision. The hosted workflow performs that handoff between jobs.
 
 ## A small Bend tour
 
