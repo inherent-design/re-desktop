@@ -9,3 +9,5 @@ Bend owns the access state machine. Do not duplicate its scheduling or lease dec
 Use the pinned local toolchain through project scripts. Test the actual running boundary when a change affects transport, lifecycle or native tray behavior. Record what the check exercised; do not equate configured cross-platform CI with observed execution. Keep Markdown prose unwrapped.
 
 Do not push, publish a release, deploy, rewrite history or modify unrelated projects without authorization. Ordinary checks must run without credentials. Avoid logging reconnect capabilities or other secrets.
+
+Use `dev` for substantial rework or big changes, and qualify CI there before returning to `main`. Preserve this branch convention when continuing the project.
