@@ -33,7 +33,9 @@ Recipients can install the GitHub tarball while the registry publication is pend
 
 ## npm credentials
 
-The initial workflow uses the organization Actions secret `NPM_TOKEN`. It must be an npm granular token with package/scope read and write publication access for `@inherent-design` and automation-compatible 2FA settings. Organization-management access is unnecessary. The token is injected as `NODE_AUTH_TOKEN` only in the final npm step; it is never read locally, copied to recipients, or made available to scans/PR jobs. Rotate it before its chosen expiry.
+The npm steps use the organization Actions secret `NPM_TOKEN`. The npm account that issues it needs permission to create or write the package. Grant the token package and scope write access for `@inherent-design`. Staging supports **Read and write (stage only)**, with the maintainer's 2FA challenge at approval. Direct publishing needs **Read and write (publish and stage)** and an npm policy that permits direct token publication. The workflow supplies `NODE_AUTH_TOKEN` only to the npm step. Rotate the token before expiry. [npm access token permissions](https://docs.npmjs.com/about-access-tokens/)
+
+An authenticated credential can still lack the scope grant or npm organization role. Verify both when npm denies publishing. Once scope access is restored, retry the verified staging workflow or publish the attached tarball from an authorized npm session with 2FA.
 
 Public-source publication requests npm provenance using the workflow's OIDC permission. That attestation is separate from npm trusted publishing. Trusted publishing is a future credential migration: after the package exists, enroll GitHub Actions for owner `inherent-design`, repository `re-desktop`, workflow `release.yml`, then remove token injection and qualify another publication. Revoke or restrict the bootstrap token only after that path works; an organization-wide secret may serve other repositories.
 

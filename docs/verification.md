@@ -1,6 +1,6 @@
 # Verification
 
-The `0.2.0-preview.2` release contains source `50ec963f06820d6acd067772adb73b09c7d50884`. That revision passed branch qualification on dev and main. The tag run repeated proof, scan, native, and archive checks, then published the complete GitHub preview. npm rejected direct registry publication with `E404`, so the installed verification used the attached npm tarball. [Dev CI](https://github.com/inherent-design/re-desktop/actions/runs/44632534748) · [Main CI](https://github.com/inherent-design/re-desktop/actions/runs/44633142941) · [Tag run](https://github.com/inherent-design/re-desktop/actions/runs/44633695477) · [Preview](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.2)
+The `0.2.0-preview.2` release contains source `50ec963f06820d6acd067772adb73b09c7d50884`. That revision passed branch qualification on dev and main. The tag run repeated proof, scan, native, and archive checks, then published the complete GitHub preview. The installed verification used its attached npm tarball. [Dev CI](https://github.com/inherent-design/re-desktop/actions/runs/44632534748) · [Main CI](https://github.com/inherent-design/re-desktop/actions/runs/44633142941) · [Tag run](https://github.com/inherent-design/re-desktop/actions/runs/44633695477) · [Preview](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.2)
 
 ## Executed checks
 
@@ -46,6 +46,8 @@ Codex 0.170.0 discovered and exercised the installed entry in two ephemeral thre
 The ordinary fixture does not establish every default installation's backend. Per-thread connections do not prove their lifetime, and bridge presence does not prove an active model. The experiment did not stop a user's daemon or exercise active-turn cancellation. [Desktop behavior](product.md#bridge-lifetime) owns the resulting expiry contract.
 
 ## Security and release limits
+
+Registry publication is pending npm package creation access. Direct publication returned `E404`. The staging run verified the published attachment and authenticated the CI credential, then npm returned `E403` for the scoped package. [Staging run](https://github.com/inherent-design/re-desktop/actions/runs/44636690966)
 
 Trivy reported zero findings for its source and dependency scope and uploaded redacted SARIF to public code scanning. Renovate detected the configured dependency sources and opened a mise patch PR against dev. The scanner does not independently inventory all embedded Chromium vulnerabilities. [Public scan](https://github.com/inherent-design/re-desktop/actions/runs/44630972779) · [Dependency dashboard](https://github.com/inherent-design/re-desktop/issues/2) · [Renovate PR](https://github.com/inherent-design/re-desktop/pull/3)
 
