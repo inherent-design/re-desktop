@@ -8,11 +8,14 @@ import { join, resolve, basename } from 'node:path';
 const repository = 'inherent-design/re-desktop';
 const pkg = JSON.parse(await readFile('package.json'));
 const bootstrap = JSON.parse(await readFile('bootstrap/package.json'));
-const tag = `v${pkg.version}`;
 const command = process.argv[2];
+const version = command === 'prepare-npm-stage' ? process.env.RELEASE_VERSION : pkg.version;
+if (typeof version !== 'string' || !/^\d{1,5}\.\d{1,5}\.\d{1,5}-preview\.\d{1,5}$/.test(version)) throw new Error('Select an exact preview version');
+const tag = `v${version}`;
 const gh = args => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 8 * 1048576, timeout: 180000 });
 const api = (path, ...options) => JSON.parse(gh(['api', `repos/${repository}/${path}`, ...options]));
-const source = process.env.GITHUB_SHA ?? gh(['api', `repos/${repository}/commits/${tag}`, '--jq', '.sha']).trim();
+const tagSource = () => api(`commits/${tag}`).sha;
+const source = command === 'prepare-npm-stage' ? tagSource() : process.env.GITHUB_SHA ?? tagSource();
 const hash = async file => { const value = createHash('sha256'); for await (const bytes of createReadStream(file)) value.update(bytes); return value.digest('hex'); };
 const nativeFiles = target => {
   const archive = `re-desktop-${pkg.version}-${target}.tar.gz`;
@@ -54,9 +57,8 @@ async function upload(file) {
   console.log(`Verified upload of ${name}`);
 }
 if (command === 'preflight') {
-  const taggedSource = gh(['api', `repos/${repository}/commits/${tag}`, '--jq', '.sha']).trim();
+  const taggedSource = tagSource();
   if (pkg.version !== bootstrap.version || process.env.GITHUB_REF !== `refs/tags/${tag}` || process.env.GITHUB_SHA !== source || source !== taggedSource) throw new Error('Tag, source, host and bootstrap versions must identify this exact release');
-  if (!pkg.version.includes('-preview.')) throw new Error('Only unsigned previews are configured. Signed stable release policy must be implemented first.');
   const runs = api(`actions/workflows/build.yml/runs?head_sha=${source}&status=completed`).workflow_runs;
   if (!runs.some(run => run.conclusion === 'success' && ['dev', 'main'].includes(run.head_branch) && run.head_sha === source)) throw new Error('This exact source has not passed branch CI on dev/main');
   console.log(`Qualified ${tag} at ${source}`);
@@ -117,6 +119,29 @@ if (command === 'preflight') {
     }
     console.log(`Published complete ${tag}; manifest uploaded last`);
   } finally { await rm(temporary, { recursive: true, force: true }); }
+} else if (command === 'prepare-npm-stage') {
+  const existing = api(`releases/tags/${tag}`);
+  if (existing.draft || !existing.prerelease || existing.tag_name !== tag || existing.target_commitish !== source) throw new Error('Expected a published preview from the selected tag');
+  const getAsset = name => {
+    const found = existing.assets.filter(asset => asset.name === name);
+    if (found.length !== 1 || found[0].size < 1 || found[0].size > 1048576) throw new Error(`Expected one bounded release asset named ${name}`);
+    return found[0];
+  };
+  const filename = `inherent-design-re-desktop-${version}.tgz`;
+  await mkdir('dist', { recursive: true });
+  const directory = await mkdtemp(resolve('dist', 'npm-stage-'));
+  const manifestPath = join(directory, 'release.json'), file = join(directory, filename);
+  await download(getAsset('release.json'), manifestPath);
+  const manifest = JSON.parse(await readFile(manifestPath));
+  if (manifest.format !== 1 || manifest.repository !== repository || manifest.version !== version || manifest.source !== source || manifest.npm?.filename !== filename) throw new Error('Published release manifest does not match the selected preview');
+  const asset = getAsset(filename);
+  await download(asset, file);
+  const digest = await hash(file);
+  if (manifest.npm.sha256 !== digest || asset.digest !== `sha256:${digest}` || manifest.npm.size !== (await stat(file)).size) throw new Error('Published npm tarball failed integrity verification');
+  const metadata = JSON.parse(execFileSync('tar', ['-xOf', file, 'package/package.json'], { encoding: 'utf8', maxBuffer: 32768 }));
+  if (metadata.name !== bootstrap.name || metadata.version !== version || metadata.private) throw new Error('Published tarball package identity does not match the release');
+  if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `tarball=${file}\n`);
+  console.log(`Verified ${metadata.name}@${version} from ${source}\nSHA-256 ${digest}`);
 } else if (command === 'npm') {
   const file = resolve('dist', `inherent-design-re-desktop-${pkg.version}.tgz`);
   const manifest = JSON.parse(await readFile('dist/release.json'));
@@ -133,4 +158,4 @@ if (command === 'preflight') {
   const args = ['publish', file, '--access', 'public', '--tag', 'preview'];
   if (process.env.RELEASE_PUBLIC === 'true') args.push('--provenance');
   execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', args, { stdio: 'inherit' });
-} else throw new Error('Use preflight, draft, upload-native, publish or npm');
+} else throw new Error('Use preflight, draft, upload-native, publish, npm or prepare-npm-stage');

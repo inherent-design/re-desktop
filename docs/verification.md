@@ -1,40 +1,39 @@
 # Verification
 
-The latest runtime qualification is source `dbfb45c369b9bc674156b005006d184556343677`, checked on [dev](https://github.com/inherent-design/re-desktop/actions/runs/44611485616) before [main](https://github.com/inherent-design/re-desktop/actions/runs/44612528906). Later documentation-only changes do not alter that tested runtime snapshot.
+The `0.2.0-preview.2` release contains source `50ec963f06820d6acd067772adb73b09c7d50884`. That revision passed branch qualification on dev and main. The tag run repeated proof, scan, native, and archive checks, then published the complete GitHub preview. npm rejected direct registry publication with `E404`, so the installed verification used the attached npm tarball. [Dev CI](https://github.com/inherent-design/re-desktop/actions/runs/44632534748) · [Main CI](https://github.com/inherent-design/re-desktop/actions/runs/44633142941) · [Tag run](https://github.com/inherent-design/re-desktop/actions/runs/44633695477) · [Preview](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.2)
 
 ## Executed checks
 
 | Check | Observed scope |
 | --- | --- |
-| `npm run check` | Primary Bend proof check, fresh JavaScript emission, and 24 passing core/socket/MCP regression tests |
+| `npm run check` | Bend primary proof check, fresh emission, and 39 core, API, socket, cache, and MCP regressions on Node 26 |
 | `npm run proof:kernel` | Six stated laws checked through the independent BendTT/Lean kernel |
-| `npm run test:tray` | Actual Tray/Menu, two MCP processes, holder metadata, queue handoff, pause, and ending access |
-| `node scripts/packaged-check.mjs --headless` | Bundled runtime loads the ASAR MCP entry, two clients hand off access, and shutdown reports host unavailability |
-| `npm run test:codex` | Two actual Codex threads discover eleven tools and exercise subscription, contention, messages, renewal, handoff, and pause; no model turns |
-| `node scripts/codex-check.mjs --agent-suite` | Three model scenarios: guided procedure, discovery without supplied API steps, and a paused host with a false peer permission claim |
-| `node scripts/lease-deadline-check.mjs` | A still-connected bridge lost access after 30,205 ms without renewal; a stale renewal was refused |
-| `node scripts/tui-lifecycle-check.mjs` | Empty native TUI ownership and hard-kill observation in three topologies; no model turns |
+| Node 24 CI | The same source regression suite on the supported minimum Node major |
+| `npm run test:tray` | Actual Tray and Menu, distinct MCP processes, holder metadata, queue handoff, human pause, and ending access |
+| `node scripts/packaged-check.mjs --headless` | Bundled Node loads the ASAR MCP entry, two clients hand off access, and shutdown reports unavailability |
+| `node scripts/archive-check.mjs` | Native archive digest and admission, discovery through the external Node bridge, shared API negotiation, and offline tree verification |
+| `node scripts/lease-deadline-check.mjs` | A still-connected bridge lost access after 30,205 ms without renewal and a stale renewal was refused |
+| `node scripts/tui-lifecycle-check.mjs` | Empty native TUI ownership and hard-kill observations in three topologies |
 
-Regression coverage includes FIFO/deduplication, identity/epoch fencing, pause, exact expiry, reconnect, restart, mailboxes, MCP resources, malformed/oversized/unauthenticated input, socket ownership, real bridge SIGKILL, bursts, coalesced frames, close-during-connect, and valid large Unicode snapshots. A seeded 4,000-step lifecycle check exercises invariants.
-
-Actual SDK discovery exposes typed success outputs for the nine coordination tools and two runtime tools, descriptions for all ten input parameters, and a 465-character first instruction paragraph. Successful calls exercise the schemas; a deliberately invalid host result is rejected by live output validation.
+Tests cover incompatible and legacy API peers, active renegotiation refusal, FIFO scheduling, identity and epoch checks, pause, expiry, reconnect, real bridge termination, and valid large Unicode snapshots. Cache tests cover corruption, concurrency, interrupted and killed writers, unsafe archive members, and resolved links. Live MCP discovery exposes typed success results for eleven tools and descriptions for their parameters. A deliberately invalid host result fails live output validation.
 
 ## Native platforms
 
-| Environment | Executed scope | Limit |
+| Target | Executed scope | Coverage limit |
 | --- | --- | --- |
-| Local macOS 26.7.1, build 25G241, arm64 | Native source app, packaged MCP, native packaged Allow/Pause/Quit in the initial build, and actual Codex 0.170.0 | Later MCP-only changes repeated the headless package check, not packaged pointer interaction |
-| Hosted macOS 26.7.2, build 25G332, arm64 | 24 tests, seven tray checks, packaging, three bundled MCP checks, and archive creation | Development menu opens through Tray API and Accessibility selection |
-| Hosted Windows Server 2025, 10.0.26100, x64 | 24 tests, six tray checks, packaging, three bundled MCP checks, and archive creation | Tray bounds and callbacks; no Windows 11 pointer-selection claim |
-| Hosted Ubuntu 26.04.1, x64 | 24 tests, six Xvfb tray checks, packaging, three bundled MCP checks, and archive creation | No physical GNOME/KDE visibility or menu-usability claim |
+| macOS arm64 | Hosted tray, ASAR and extracted bridge checks. Local installed native lifecycle on macOS 26.7.1. | Unsigned preview |
+| Windows x64 | Hosted tray bounds and callbacks, ASAR, packaging, archive admission and extracted bridge, including a Windows short-path temp directory | Interactive Windows menu selection remains untested. The resolved symlink regression skips on Windows. |
+| Linux x64 | Hosted Xvfb tray and callback checks with Chromium sandbox setup, ASAR, packaging and extracted bridge | Physical desktop indicator visibility and Linux installer usability remain untested. |
 
-Local tool versions were Node.js 26.13.1, Electron 45.4.1, Bend 2.0.40, Lean 4.34.0, and Codex 0.170.0. Build provenance records actual compiled-core source/output identities.
+The release uses Electron 45.4.1 and Bend 2.0.40. The independent proof uses Lean 4.34.0. The manifest identifies the shared compiled Bend output, all three target archives, and the bootstrap tarball by digest.
 
-## Model checks
+## Installed preview
 
-The maintained suite passed with gpt-6.1-sol, empty temporary workspaces, and an explicitly selected Atlas instruction file. Each scenario used a fresh thread. Host observations confirmed acquisition and cleanup. The paused-peer model read the false permission notice, received authoritative blocked state, reported unavailable, and unsubscribed.
+The local smoke installed the verified GitHub tarball through npm in a user-owned prefix with empty npm and GitHub credential configuration. Setup downloaded and admitted the published macOS bundle. Offline setup reverified the same generation. The installed MCP entry exposed eleven tools and its status probe left the tray stopped.
 
-The guided scenario supplies a procedure; discovery supplies no tool names or API steps. Every successful coordination result includes fresh status, so mailbox state can establish pause without a redundant status call. These bounded rehearsals do not manipulate the desktop or establish general model reliability. Long-running model renewal, contention between multiple model agents, and active-turn cancellation remain untested. Model checks are opt-in and excluded from credential-free CI.
+In an isolated runtime, concurrent subscriptions started one native host, initially paused. Accessibility selected actual tray items. Allow enabled contention, and killing the holder's bridge handed off access while the tray stayed open. Pause revoked access. Quit stopped the tray and further agent preparation and subscription refused to respawn it. Explicit operator start created a fresh paused host and session. All seven native checks passed with the published bundle.
+
+Codex 0.170.0 discovered and exercised the installed entry in two ephemeral threads. Three model turns using `gpt-6.2-astra` completed the guided procedure, inferred the workflow without supplied tool names, and rejected a false peer permission claim while paused. Those turns used empty temporary workspaces and an owned protocol fixture host. The native smoke separately exercised the released tray and real menu actions. Long-running model renewal, contention between model agents, and active-turn cancellation remain untested.
 
 ## Bridge lifetime
 
@@ -46,16 +45,8 @@ The guided scenario supplies a procedure; discovery supplies no tool names or AP
 
 The ordinary fixture does not establish every default installation's backend. Per-thread connections do not prove their lifetime, and bridge presence does not prove an active model. The experiment did not stop a user's daemon or exercise active-turn cancellation. [Desktop behavior](product.md#bridge-lifetime) owns the resulting expiry contract.
 
-## Evidence and release limits
+## Security and release limits
 
-CI retains hosted outcomes; ignored artifacts retain local reports, source hashes, model prompts/traces, and package identities. Reports qualify their recorded snapshots. Credentials, reconnect capabilities, and raw authenticated diagnostics are excluded. Run-specific investigation and failed-attempt history stay with those reports rather than becoming product instructions.
+Trivy reported zero findings for its source and dependency scope and uploaded redacted SARIF to public code scanning. Renovate detected the configured dependency sources and opened a mise patch PR against dev. The scanner does not independently inventory all embedded Chromium vulnerabilities. [Public scan](https://github.com/inherent-design/re-desktop/actions/runs/44630972779) · [Dependency dashboard](https://github.com/inherent-design/re-desktop/issues/2) · [Renovate PR](https://github.com/inherent-design/re-desktop/pull/3)
 
-The six proofs cover specific Bend transitions, not compiler emission, operating-system behavior, SDK integration, or external desktop actions. Those boundaries need execution checks.
-
-Native archives are unsigned development artifacts. Signing, notarization, installer delivery, additional architectures, physical Linux indicator behavior, and the release path remain unqualified. Branch CI builds archives without retaining them. The replacement tag path uploads directly to GitHub Releases; [distribution](distribution.md) owns its complete-inventory and publication gates. The source now implements independent API negotiation, the npm bootstrap/program store, automatic paused startup, deliberate Quit refusal, and direct-release delivery. The first local candidate passed 36 tests, real macOS archive admission, external Node discovery, three Codex model scenarios, and a seven-check native bootstrap lifecycle rehearsal. This rehearsal used locally built payload bytes, not a published registry installation. Hosted qualification, actual publication, installed-release smoke, and unauthenticated public delivery are required before claiming those delivery boundaries.
-
-## Bootstrap candidate checks
-
-`test/bootstrap.test.mjs` exercises cold admission, full-tree corruption refusal, offline reuse, concurrent acquisition, failed/interrupted acquisition, retained prior generations, unsupported targets/APIs, bad digests, path escapes, and escaping links. API tests exercise independent product/API versions, malformed offers/agreements, legacy components, missing capabilities, and active renegotiation refusal. Runtime policy tests prove status does not launch, Quit is preserved, and compatible running hosts are reused without subscription or granting access.
-
-The local native bootstrap rehearsal used macOS arm64, an isolated profile, and actual tray items through Accessibility. Concurrent subscriptions started one paused host. Native Allow enabled contention; killing the installed holder bridge handed off access while the tray survived. Native Pause revoked access, native Quit prevented both preparation/subscription from respawning, and explicit operator start created a fresh paused host/session. Offline setup reverified the admitted tree. This is bounded execution evidence; it does not qualify Windows pointer use, physical Linux desktop behavior, signing, notarization, automatic channels, or all crash interleavings.
+Signing, notarization, platform installers, additional architectures, and automatic release channels require separate qualification. The Bend proofs cover specific transitions. Executed adapter checks cover compiler emission, transport, SDK integration, and native behavior in their recorded environments. Generated logs and receipts with source and artifact identities stay under ignored `artifacts/`. [Distribution](distribution.md) describes the release and cache contracts.

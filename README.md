@@ -10,8 +10,11 @@ The project is experimental. Native previews are unsigned. See [verification](do
 
 Requires Node 24 or newer. Qualified targets are macOS arm64, Windows x64, and Linux x64.
 
+The GitHub preview includes the npm bootstrap as a tarball. Check its SHA-256 against `npm.sha256` in the attached `release.json`. [Preview release](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.2)
+
 ```sh
-npm install --global @inherent-design/re-desktop@preview
+curl --fail --location --remote-name https://github.com/inherent-design/re-desktop/releases/download/v0.2.0-preview.2/inherent-design-re-desktop-0.2.0-preview.2.tgz
+npm install --global ./inherent-design-re-desktop-0.2.0-preview.2.tgz
 re-desktop setup
 ```
 
@@ -53,7 +56,8 @@ node scripts/codex-config.mjs
 Add the output to your Codex MCP configuration, then reload MCP servers or start a new session. The command prints configuration without editing account settings. For a native package, generate configuration using its bundled runtime:
 
 ```sh
-node scripts/codex-config.mjs --packaged dist/builds/0.2.0-preview.2/re-desktop-darwin-arm64
+version=$(node -p "require('./package.json').version")
+node scripts/codex-config.mjs --packaged "dist/builds/$version/re-desktop-darwin-arm64"
 ```
 
 An agent subscribes, takes access immediately before desktop work, proceeds when the non-null holder matches its identity, and releases when finished. It must explicitly renew before its 30-second lease expires. MCP discovery supplies the workflow, described parameters, and typed responses; [protocol](docs/protocol.md) owns the tool and response contracts. Source and standalone ASAR bridges require manual native startup. The installed npm entry manages startup under the saved owner policy.
