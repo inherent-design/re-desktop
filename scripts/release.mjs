@@ -8,10 +8,14 @@ import { join, resolve, basename } from 'node:path';
 const repository = 'inherent-design/re-desktop';
 const pkg = JSON.parse(await readFile('package.json'));
 const bootstrap = JSON.parse(await readFile('bootstrap/package.json'));
+const packageName = bootstrap.name;
+if (!/^@[a-z0-9][a-z0-9.-]*\/re-desktop$/.test(packageName)) throw new Error('Invalid bootstrap package identity');
 const command = process.argv[2];
 const version = command === 'prepare-npm-stage' ? process.env.RELEASE_VERSION : pkg.version;
 if (typeof version !== 'string' || !/^\d{1,5}\.\d{1,5}\.\d{1,5}-preview\.\d{1,5}$/.test(version)) throw new Error('Select an exact preview version');
 const tag = `v${version}`;
+const npmFilename = `${packageName.slice(1).replace('/', '-')}-${version}.tgz`;
+const npmVersionUrl = `https://registry.npmjs.org/${packageName.replace('/', '%2F')}/${version}`;
 const gh = args => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 8 * 1048576, timeout: 180000 });
 const api = (path, ...options) => JSON.parse(gh(['api', `repos/${repository}/${path}`, ...options]));
 const tagSource = () => api(`commits/${tag}`).sha;
@@ -101,11 +105,11 @@ if (command === 'preflight') {
       if (JSON.stringify(record.core) !== JSON.stringify(core)) throw new Error(`Target differs from the proved Bend core: ${target}`);
       records.push(record);
     }
-    const npm = resolve('dist', `inherent-design-re-desktop-${pkg.version}.tgz`);
+    const npm = resolve('dist', npmFilename);
     await upload(npm);
     await mkdir('dist', { recursive: true });
     const manifest = { format: 1, repository, version: pkg.version, source, api: contract, bootstrap_api: 1, core,
-      qualification: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`, targets: records.map(record => record.asset), npm: { filename: basename(npm), sha256: await hash(npm), size: (await stat(npm)).size } };
+      qualification: `https://github.com/${repository}/actions/runs/${process.env.GITHUB_RUN_ID}`, targets: records.map(record => record.asset), npm: { name: packageName, filename: npmFilename, sha256: await hash(npm), size: (await stat(npm)).size } };
     const { validateManifest } = await import('../bootstrap/lib/store.mjs');
     for (const target of expected) validateManifest(manifest, pkg.version, target);
     await writeFile('dist/release.json', JSON.stringify(manifest, null, 2) + '\n');
@@ -127,14 +131,13 @@ if (command === 'preflight') {
     if (found.length !== 1 || found[0].size < 1 || found[0].size > 1048576) throw new Error(`Expected one bounded release asset named ${name}`);
     return found[0];
   };
-  const filename = `inherent-design-re-desktop-${version}.tgz`;
   await mkdir('dist', { recursive: true });
   const directory = await mkdtemp(resolve('dist', 'npm-stage-'));
-  const manifestPath = join(directory, 'release.json'), file = join(directory, filename);
+  const manifestPath = join(directory, 'release.json'), file = join(directory, npmFilename);
   await download(getAsset('release.json'), manifestPath);
   const manifest = JSON.parse(await readFile(manifestPath));
-  if (manifest.format !== 1 || manifest.repository !== repository || manifest.version !== version || manifest.source !== source || manifest.npm?.filename !== filename) throw new Error('Published release manifest does not match the selected preview');
-  const asset = getAsset(filename);
+  if (manifest.format !== 1 || manifest.repository !== repository || manifest.version !== version || manifest.source !== source || manifest.npm?.filename !== npmFilename || manifest.npm.name !== packageName) throw new Error('Published release manifest does not match the selected preview and npm package');
+  const asset = getAsset(npmFilename);
   await download(asset, file);
   const digest = await hash(file);
   if (manifest.npm.sha256 !== digest || asset.digest !== `sha256:${digest}` || manifest.npm.size !== (await stat(file)).size) throw new Error('Published npm tarball failed integrity verification');
@@ -143,10 +146,10 @@ if (command === 'preflight') {
   if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `tarball=${file}\n`);
   console.log(`Verified ${metadata.name}@${version} from ${source}\nSHA-256 ${digest}`);
 } else if (command === 'npm') {
-  const file = resolve('dist', `inherent-design-re-desktop-${pkg.version}.tgz`);
+  const file = resolve('dist', npmFilename);
   const manifest = JSON.parse(await readFile('dist/release.json'));
-  if (manifest.source !== source || manifest.version !== pkg.version || manifest.npm.sha256 !== await hash(file)) throw new Error('npm package differs from the verified published release');
-  const registry = await fetch(`https://registry.npmjs.org/@inherent-design%2Fre-desktop/${pkg.version}`, { signal: AbortSignal.timeout(20000) });
+  if (manifest.source !== source || manifest.version !== version || manifest.npm.name !== packageName || manifest.npm.filename !== npmFilename || manifest.npm.sha256 !== await hash(file)) throw new Error('npm package differs from the verified published release');
+  const registry = await fetch(npmVersionUrl, { signal: AbortSignal.timeout(20000) });
   if (registry.ok) {
     const metadata = await registry.json(), digest = createHash('sha512');
     for await (const bytes of createReadStream(file)) digest.update(bytes);

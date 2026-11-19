@@ -33,7 +33,7 @@ Recipients can install the GitHub tarball while the registry publication is pend
 
 ## npm credentials
 
-The npm steps use the organization Actions secret `NPM_TOKEN`. The npm account that issues it needs permission to create or write the package. Grant the token package and scope write access for `@inherent-design`. Staging supports **Read and write (stage only)**, with the maintainer's 2FA challenge at approval. Direct publishing needs **Read and write (publish and stage)** and an npm policy that permits direct token publication. The workflow supplies `NODE_AUTH_TOKEN` only to the npm step. Rotate the token before expiry. [npm access token permissions](https://docs.npmjs.com/about-access-tokens/)
+The GitHub repository is `inherent-design/re-desktop`. Its npm package is `@inherent.design/re-desktop`. The npm steps use the GitHub organization Actions secret `NPM_TOKEN`. The npm account that issues it needs permission to create or write the package. Grant the token package and scope write access for `@inherent.design`. Staging supports **Read and write (stage only)**, with the maintainer's 2FA challenge at approval. Direct publishing needs **Read and write (publish and stage)** and an npm policy that permits direct token publication. The workflow supplies `NODE_AUTH_TOKEN` only to the npm step. Rotate the token before expiry. [npm access token permissions](https://docs.npmjs.com/about-access-tokens/)
 
 An authenticated credential can still lack the scope grant or npm organization role. Verify both when npm denies publishing. Once scope access is restored, retry the verified staging workflow or publish the attached tarball from an authorized npm session with 2FA.
 

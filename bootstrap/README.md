@@ -5,11 +5,13 @@ re:desktop coordinates voluntary desktop access between people and agents. It di
 Requires Node 24 or newer and a graphical desktop. Qualified targets are macOS arm64, Windows x64, and Linux x64. This initial preview is unsigned; macOS/Windows may require an explicit OS trust decision. Linux needs a working desktop indicator and Chromium sandbox support. The bootstrap never disables the sandbox or requests elevation.
 
 ```sh
-npm install --global @inherent-design/re-desktop@preview
+npm install --global @inherent.design/re-desktop@preview
 re-desktop setup
 ```
 
 Setup downloads and verifies the exact selected native release and prints MCP configuration with absolute Node and bootstrap paths. Configure your client with that entry. Subscription can start the shared native tray, initially paused. A person must select **Allow agent access** before an agent can take access. Discovery and status never start the tray. A deliberate **Quit re:desktop** prevents automatic restart; explicitly open the app or run `re-desktop start` to resume.
+
+To register the installed CLI with Codex, run `codex mcp add re_desktop -- "$(command -v re-desktop)" mcp` and open a fresh TUI session. Other MCP clients can use the JSON from `re-desktop config`.
 
 `re-desktop prefetch` prepares without changing the selection. `setup --version <exact-version>` selects a release for new MCP connections; `--offline` requires already verified cached bytes. Existing bridges and hosts are never silently replaced. `re-desktop status` reports independent APIs and authenticated host readiness. `re-desktop config` prints configuration without preparing or starting a host.
 

@@ -4,7 +4,7 @@ The Node/npm bootstrap selects exact native releases, verifies cached program ge
 
 ## Recipient setup
 
-The stable MCP entry is the small `@inherent-design/re-desktop` npm bootstrap, with Node 24 or newer. `re-desktop setup` prepares its exact native selection and prints client configuration. Retain standalone native operation with the bundled runtime. Recipients need no checkout, compiler, Bend installation, or Lean installation.
+The stable MCP entry is the small `@inherent.design/re-desktop` npm bootstrap, with Node 24 or newer. `re-desktop setup` prepares its exact native selection and prints client configuration. Standalone native operation uses the bundled runtime. Recipients need no checkout, compiler, Bend installation, or Lean installation.
 
 Setup prefetches and verifies the selected native release, then prints JSON client configuration without changing client settings. `config` prints the same literal absolute Node/CLI arguments without acquisition. `prefetch` prepares without selecting. `setup --version <exact-version>` changes the pin for new connections; `--offline` forbids acquisition. Warm startup uses verified bytes without a network dependency. A cold invocation without a payload must acquire it within a bounded startup budget or fail clearly. A missing exact release never becomes an arbitrary version fallback.
 
