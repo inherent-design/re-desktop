@@ -16,6 +16,16 @@
   "lockFileMaintenance": { "enabled": true },
   "packageRules": [
     {
+      "description": "Keep CI coverage on the minimum supported Node major",
+      "matchManagers": ["github-actions"],
+      "matchFileNames": [".github/workflows/build.yml"],
+      "matchDepTypes": ["uses-with"],
+      "matchPackageNames": ["node"],
+      "matchCurrentValue": "24",
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
       "matchManagers": ["mise"],
       "matchPackageNames": ["aquasecurity/trivy"],
       "overrideDatasource": "git-tags",
