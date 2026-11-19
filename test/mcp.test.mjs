@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { ResourceUpdatedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { setTimeout as delay } from 'node:timers/promises';
 import { startHost } from '../src/host.mjs';
@@ -125,4 +125,14 @@ test('killing an actual MCP bridge immediately releases its desktop access', asy
   } while (performance.now() < deadline);
   assert.equal(status.holder.session_id, two.session_id);
   assert.equal(status.sessions.find(s => s.name === 'Killed process').connected, false);
+});
+
+test('direct MCP startup accepts an alternate filesystem spelling of the entry path', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'rd-main-'));
+  let entry;
+  if (process.platform === 'win32') entry = resolve('src/mcp.mjs').toUpperCase();
+  else { entry = join(root, 'alias.mjs'); await symlink(resolve('src/mcp.mjs'), entry); }
+  const client = await mcpClient(root, 'alternate-entry', { entry });
+  t.after(async () => { await client.client.close(); await rm(root, { recursive: true, force: true }); });
+  assert.equal((await client.client.listTools()).tools.length, 11);
 });

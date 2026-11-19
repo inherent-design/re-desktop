@@ -4,7 +4,7 @@ import { SubscribeRequestSchema, UnsubscribeRequestSchema, McpError, ErrorCode }
 import { z } from 'zod';
 import { Peer } from './peer.mjs';
 import { api, apiError } from './api.mjs';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 import { lstat, realpath } from 'node:fs/promises';
 
@@ -151,4 +151,5 @@ export async function runMcp({ runtime } = {}) {
 
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(await realpath(resolve(process.argv[1]))).href) await runMcp();
+const isEntry = import.meta.main ?? Boolean(process.argv[1] && await realpath(resolve(process.argv[1])) === await realpath(fileURLToPath(import.meta.url)));
+if (isEntry) await runMcp();

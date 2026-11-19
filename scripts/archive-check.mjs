@@ -5,6 +5,7 @@ import { resolve, join } from 'node:path';
 import { ProgramStore } from '../bootstrap/lib/store.mjs';
 import { startHost } from '../src/host.mjs';
 import { mcpClient, tool } from './mcp-client.mjs';
+import { execFileSync } from 'node:child_process';
 
 const { version } = JSON.parse(await readFile('package.json'));
 const file = resolve('dist', `re-desktop-${version}-${process.platform}-${process.arch}.tar.gz`);
@@ -18,6 +19,14 @@ try {
   } });
   const generation = await store.prepare(version);
   host = await startHost({ root: join(root, 'runtime') });
+  if (process.platform === 'win32') execFileSync(process.execPath, ['--input-type=module', '-e', `
+    import { realpath } from 'node:fs/promises';
+    import { pathToFileURL } from 'node:url';
+    const requested = pathToFileURL(process.argv[1]).href;
+    const resolved = import.meta.resolve(requested);
+    const native = pathToFileURL(await realpath(process.argv[1])).href;
+    console.log(JSON.stringify({ requested, resolved, native, oldEntryCheck: resolved === native }));
+  `, join(generation.program, generation.asset.bridge)], { stdio: 'inherit' });
   client = await mcpClient(host.paths.root, 'extracted-node-bridge', { entry: join(generation.program, generation.asset.bridge) });
   assert.equal((await client.client.listTools()).tools.length, 11);
   assert.equal((await tool(client.client, 'desktop_subscribe', { name: 'Admitted native archive', workspace: root })).data.user_blocked, true);
