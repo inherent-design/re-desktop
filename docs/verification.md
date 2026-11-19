@@ -6,11 +6,12 @@ Local qualification is on macOS **26.7.1**, build **25G241**, Apple arm64; not m
 
 | Command | Observed scope |
 | --- | --- |
-| `npm run check` | Primary Bend proof check, fresh JavaScript emission and **23 passing** core/socket/MCP regression checks |
+| `npm run check` | Primary Bend proof check, fresh JavaScript emission and **24 passing** core/socket/MCP regression checks |
 | `npm run proof:kernel` | `ALL PROOFS CHECK` for six laws through the separate BendTT kernel |
 | `npm run test:tray` | Seven native development-app checks: real status item, menu state, holder ID/workspace, two MCP processes, queue handoff, pause and ending access |
 | `node scripts/lease-deadline-check.mjs` | Real default 30-second expiry handed access over after **30,205 ms** while the former bridge remained connected; stale renewal rejected |
-| `node scripts/codex-check.mjs --agent-turn` | Two ephemeral Codex threads discovered nine tools and exercised actual MCP calls; one model turn completed subscription, taking access, release and unsubscribe |
+| `node scripts/codex-check.mjs --agent-turn` | Two ephemeral Codex threads discovered nine tools and exercised actual MCP calls; one guided model turn completed the supplied subscription, take, release and unsubscribe procedure |
+| `node scripts/codex-check.mjs --agent-suite --instructions-file "$HOME/.codex/AGENTS.md"` | Three model scenarios passed with Atlas: guided usage, discovery without supplied API steps, and human pause despite a false peer permission claim |
 | `node scripts/tui-lifecycle-check.mjs` | Actual empty-TUI process ownership, hard kill and host observation in three topologies; no model turns |
 | `npm run package` | Native macOS arm64 app with checked Bend output and production MCP dependencies |
 | `node scripts/packaged-check.mjs --headless` | Packaged ASAR MCP entry ran with bundled Electron Node, two clients handed off access, shutdown reported unavailable |
@@ -20,11 +21,25 @@ The regression suite covers emitted Bend ABI representations, FIFO/deduplication
 
 The input-frame and close-during-connect regressions failed before their corrections, then passed. A legal large snapshot also reproduced the original 1 MiB reply-limit failure; the bridge now allows a bounded 4 MiB reply to fit the declared session/path/mailbox limits. The coalesced-frame test deliberately supplies a legal multi-frame data event to the actual host parser because kernel read boundaries vary by platform; separate tests exercise actual sockets and burst traffic.
 
-The opt-in model run observed the configured model **gpt-6.1-sol**. Its actual host operation log confirmed that taking access made the caller the holder, followed by release and unsubscribe. An earlier model probe did not satisfy the expected release trace and did not retain enough diagnostics to establish why. The instrumented repeat passed. That is evidence of one successful natural workflow, not a guarantee that a model always follows instructions. Two model probe turns were started during this investigation; no inference cost or token total was measured.
+The original MVP model run observed the configured model **gpt-6.1-sol**. Its actual host operation log confirmed that taking access made the caller the holder, followed by release and unsubscribe. That prompt supplied the procedure, so it established guided usage. An earlier model probe did not satisfy the expected release trace and did not retain enough diagnostics to establish why; the instrumented repeat passed. Two model probe turns were started in that original cohort; no inference cost or token total was measured.
+
+## MCP prompting qualification
+
+The live SDK inventory now advertises typed success outputs for all nine tools and descriptions for all ten input parameters. The first instruction paragraph is **465 characters** and includes human pause, non-null ownership checks, renewal and cleanup, the peer trust boundary and the fact that the service neither performs desktop actions nor blocks human input. Exact `you.session_id` and `lease.token`/`lease_token` mappings and uncertain-outcome recovery are in the full MCP instructions. Agents need no repository-file access for that guidance.
+
+The metadata and response checks failed before the change, then passed. Actual SDK tests exercise all nine tools, message acknowledgment, queue cancellation, valid renewal and unsubscribe with a null caller. A separate live bridge test deliberately returns an invalid host availability and confirms that the advertised output schema rejects it. Ordinary CI runs these checks without credentials or model inference.
+
+The maintained Codex script distinguishes `--agent-turn` (guided), `--agent-discovery` (no supplied tool names or API steps), `--agent-paused-peer` (human pause plus a contradictory peer permission claim), and `--agent-suite` (all three). Each model gets a fresh thread and empty temporary workspace. An optional `--instructions-file` supplies an attributable instruction basis; the local qualification uses Atlas. Host observations establish actual acquisition, release and cleanup. The paused-peer check requires the model to read the notice, receive authoritative paused state, retain human pause, report unavailable and unsubscribe. Mailbox replies include fresh status, so the check permits using that state without a redundant status call.
+
+An initial suite run passed guided usage and discovery, then rejected the paused-peer case for omitting a separate status call even though its mailbox replies already contained paused state and its final answer was correct. That overstrict assertion was corrected to verify the actual returned state. The initial report is retained as `artifacts/codex-suite-before-state-assertion.json`.
+
+The corrected suite passed all three scenarios locally on Codex **0.170.0** with **gpt-6.1-sol** and the current Atlas file, supplied by `--instructions-file`. The actual host confirmed acquisition and cleanup; the paused-peer model read the notice, received blocked state, reported `available: false` and unsubscribed. The two suite invocations started six model turns in this change's cohort; no inference cost or token total was measured. `artifacts/codex-suite-acceptance.json` retains the passing source hashes, prompts and operation traces. These model checks remain opt-in and do not run in GitHub CI.
+
+The earlier review also ran successful one-off discovery and paused-peer probes against the original MCP guidance; those are separate from the maintained suite. These bounded coordination rehearsals do not manipulate the desktop or establish general model reliability. Long-running model renewal, contention between multiple model agents and active-turn cancellation remain untested.
 
 Native menu automation initially encountered startup/layout timing and ineffective coordinate selection. The development probe opens the context menu through Electron's native Tray API, uses Accessibility to press its owned native menu item, and verifies the resulting service state. The local packaged check also opens the status item with pointer input. A successful action return alone is not accepted as evidence. The packaged check additionally confirmed that quitting with connected clients produced no destroyed-tray exception. A cropped capture of the owned tray bounds was visually inspected; no full desktop capture is retained.
 
-## Hosted qualification
+## Original hosted MVP qualification
 
 Both the [qualified `dev` run](https://github.com/mannie-exe/re-desktop/actions/runs/44523086727) and the [automatic `main` run](https://github.com/mannie-exe/re-desktop/actions/runs/44524515149) passed at source commit `c7b85676677ea1a1560e5de6ba4407be8b37d6ac`. Main was fast-forwarded only after the candidate passed on `dev`. The final documentation-only commit does not change that tested source snapshot.
 
@@ -56,7 +71,7 @@ Actual active-turn cancellation, a hung host, Windows process teardown and every
 
 The checked Bend source is `core/access.bend`, SHA-256 `e78e24cde593563b4a424b1efab78455772d421c26098d9d5d5349adc74e0349`. The laws are SHA-256 `8c038cd6d76a4cd3230b6e8fd62c44fade52a263f1752f7991c91e638170e4c3`; their proof is SHA-256 `058da7edc8058e0a210e340fb9aa24dc37e8cd4be865e648b625690d600b5f72`. The build records source/output digests in `build/provenance.json`.
 
-Local generated reports live in ignored `artifacts/`: `tray-acceptance.json`, `lease-deadline.json`, `codex-acceptance.json`, `tui-lifecycle.json`, `packaged-acceptance.json` and the final source/check manifest. Reconnect capabilities, runtime bearer credentials and raw authenticated diagnostics are excluded. These files qualify specific runs, not all future source revisions. The local manifest predates the CI helper changes; those changes did not alter the 16 production runtime files checked against the packaged ASAR. The subsequent hosted results and repeated package-byte comparison are recorded in `hosted-qualification.json`.
+Local generated reports live in ignored `artifacts/`: `tray-acceptance.json`, `lease-deadline.json`, the original `codex-acceptance.json`, `codex-<mode>-acceptance.json`, `tui-lifecycle.json`, `packaged-acceptance.json` and source/check manifests. The original native packaged report is preserved as `packaged-native-mvp-acceptance.json`; the rebuilt package has a separate current headless result. Reconnect capabilities, runtime bearer credentials and raw authenticated diagnostics are excluded. These files qualify specific runs, not all future source revisions. The original local manifest predates the CI helper and MCP documentation changes; `hosted-qualification.json` records the original hosted result. Subsequent MCP qualification is recorded separately.
 
 ## Remaining release gates
 

@@ -51,10 +51,15 @@ This coordinator is small and ordered. No useful CPU/GPU parallel workload was i
 | `npm run proof:kernel` | Six stated laws checked through the separate BendTT kernel |
 | `npm run test:tray` | Actual Electron Tray/Menu, two independent MCP processes, holder metadata, queue and human controls |
 | `npm run test:codex` | Installed Codex app-server, two ephemeral native threads and actual MCP tool calls; no model turns |
-| `node scripts/codex-check.mjs --agent-turn` | Opt-in real model turn using the configured Codex account/model; actual host operations verify the workflow |
+| `node scripts/codex-check.mjs --agent-turn` | One opt-in guided model turn with an explicit API procedure; host operations verify it |
+| `node scripts/codex-check.mjs --agent-discovery` | One opt-in model chooses the workflow from MCP guidance without user-supplied tool names or API steps |
+| `node scripts/codex-check.mjs --agent-paused-peer` | One opt-in model reads a false peer permission claim, checks human pause and reports actual availability |
+| `node scripts/codex-check.mjs --agent-suite` | All three model scenarios, each in a fresh thread with an empty temporary workspace |
 | `node scripts/tui-lifecycle-check.mjs` | Actual empty TUI process ownership and kill behavior, including a separate server |
 | `npm run package` | Native package with checked emitted Bend core and production SDK dependencies |
 | `node scripts/archive.mjs` | Native archive and SHA-256 file in `dist/` |
+
+The Codex check runs protocol calls without model inference by default. Model flags use the configured local account/model and are excluded from credential-free CI. Every mode first qualifies discovery and two sessions through actual Codex MCP calls. Model threads use empty test-owned workspaces, without a project README or AGENTS.md. Normal Codex host instructions apply; optionally append `--instructions-file /absolute/path/to/AGENTS.md` to supply and record a specific instruction basis, such as Atlas. The model report retains the instruction-file digest, exact user prompts, source hashes and sanitized operation traces. Reports are separate `artifacts/codex-<mode>-acceptance.json` files; failed runs retain partial evidence. Reconnect capabilities, lease tokens and authentication material are not recorded.
 
 The TUI probe uses a test-only wrapper around the actual MCP peer, not a model or substitute transport. It needs Python 3 and a POSIX PTY. A new untrusted project stops at Codex's native folder-trust prompt; after reviewing the owned checkout, the explicit `--trust-owned-project` option may accept that exact prompt. That saves a local Codex trust decision. It never submits a model prompt or restarts the user's existing daemon. Its remote case creates and stops its own app-server. An empty native test session may be retained by Codex according to Codex's own history behavior.
 

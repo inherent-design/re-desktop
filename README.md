@@ -39,7 +39,7 @@ Add that output to your Codex MCP configuration, then reload MCP servers or star
 node scripts/codex-config.mjs --packaged dist/re-desktop-darwin-arm64
 ```
 
-An agent subscribes with `desktop_subscribe`, checks `desktop_status`, then calls `desktop_take` just before desktop work. It proceeds when `holder.session_id` matches `you.session_id`, renews using `desktop_heartbeat` before 30 seconds, and releases with `desktop_release`. Every grant provides its own `lease.token`. Waiting agents get a one-based queue position. Peer messages can ask a holder to yield but never preempt it. [Protocol](docs/protocol.md) describes the nine tools and reconnect behavior.
+An agent subscribes with `desktop_subscribe`, checks `desktop_status`, then calls `desktop_take` just before desktop work. It proceeds when non-null `holder.session_id` matches `you.session_id`, renews using `desktop_heartbeat` before 30 seconds, and releases with `desktop_release`. Every grant provides its own `lease.token`, passed as `lease_token` when renewing or releasing. Waiting agents get a one-based queue position. Peer messages can ask a holder to yield but never preempt it. MCP discovery supplies the workflow, described parameters and typed responses. [Protocol](docs/protocol.md) describes the nine tools and reconnect behavior.
 
 ## Explore
 

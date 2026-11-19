@@ -1,6 +1,6 @@
 # Agent and host protocol
 
-The agent-facing transport is MCP stdio, implemented with `@modelcontextprotocol/sdk` 1.32.2. Standard output contains MCP messages only. Discovery works with the tray app offline; operations report `HOST_UNAVAILABLE` until it starts. Server instructions explain subscription, ownership checks, expiry and prompt release.
+The agent-facing transport is MCP stdio, implemented with `@modelcontextprotocol/sdk` 1.32.2. Standard output contains MCP messages only. Discovery works with the tray app offline; operations report `HOST_UNAVAILABLE` until it starts. Agents receive server instructions, descriptions for every input parameter and typed success responses through MCP; reading repository files is unnecessary for the workflow. The first instruction paragraph fits within 512 characters and includes the capability and peer-trust boundaries, human pause, ownership checks, renewal and cleanup.
 
 ## MCP tools
 
@@ -18,7 +18,9 @@ The agent-facing transport is MCP stdio, implemented with `@modelcontextprotocol
 
 Successful tool results include the current status snapshot. `you.session_id` identifies the caller; proceed only if it matches `holder.session_id`. `lease.token` is the exact value to pass as `lease_token`. `lease.remaining_ms` is measured at the host and is not a promise that a long external action will finish before expiry. A queue position is one-based, or null when not queued. A holder has no queue position.
 
-Tool errors use `isError: true` with JSON `{ "error": { "code": "…", "message": "…" } }`. Relevant codes include `NOT_SUBSCRIBED`, `NOT_HOLDER`, `STALE_LEASE`, `SESSION_EXPIRED`, `SESSION_CONNECTED`, `INVALID_ARGUMENT`, `NOT_FOUND`, `CAPACITY`, `MAILBOX_FULL`, `HOST_UNAVAILABLE` and `OUTCOME_UNKNOWN`. MCP schema validation separately rejects malformed tool arguments. An uncertain reply does not prove that a mutation failed: read current state before retrying. The bridge never blindly replays a mutation.
+Every tool advertises an `outputSchema` for its successful `structuredContent`; the SDK validates actual replies against it. The same JSON is also returned as text. The common snapshot describes `instance_id`, `availability`, `user_blocked`, `holder`, `lease`, `queue`, `sessions`, `you`, `unread_messages`, `lease_timeout_ms`, `presence_timeout_ms` and `coordination`. A subscription additionally returns `session_id` and private `resume_token`; sending a message adds `sent`; reading messages adds the remaining `messages` with sender, message ID, text and urgency. A successful unsubscribe has `you: null`. Neither two null identities nor a successful take that only queued the caller establishes ownership.
+
+Domain tool errors use `isError: true` with text JSON `{ "error": { "code": "…", "message": "…" } }`, outside the success schema. Relevant codes include `NOT_SUBSCRIBED`, `NOT_HOLDER`, `STALE_LEASE`, `SESSION_EXPIRED`, `SESSION_CONNECTED`, `INVALID_ARGUMENT`, `NOT_FOUND`, `CAPACITY`, `MAILBOX_FULL`, `HOST_UNAVAILABLE` and `OUTCOME_UNKNOWN`. MCP schema validation separately rejects malformed tool arguments or invalid host results and may return explanatory text. An uncertain reply does not prove that a mutation failed: read current state before retrying. The bridge never blindly replays a mutation.
 
 `redesktop://desktop/status` is a JSON resource supporting MCP resource subscriptions. Semantic state changes notify subscribers to reread it; elapsed countdown milliseconds alone do not generate notifications. Poll tools when a client does not consume resource notifications. Delivery of a notification does not activate a model turn.
 
