@@ -3,12 +3,14 @@ import { readFile } from 'node:fs/promises';
 import { EventEmitter } from 'node:events';
 import { StringDecoder } from 'node:string_decoder';
 import { runtimePaths } from './runtime.mjs';
+import { apiError, apiOffer, validateAgreement } from './api.mjs';
 
 export class Peer extends EventEmitter {
-  constructor({ root, presenceMs = 10000 } = {}) {
+  constructor({ root, presenceMs = 10000, offer = apiOffer() } = {}) {
     super();
     this.paths = runtimePaths(root);
     this.presenceMs = presenceMs;
+    this.offer = offer;
     this.pending = new Map();
     this.nextId = 1;
     this.closed = false;
@@ -50,13 +52,13 @@ export class Peer extends EventEmitter {
           const pending = this.pending.get(message.id);
           if (!pending) continue;
           this.pending.delete(message.id); clearTimeout(pending.timer);
-          if (message.error) pending.reject(Object.assign(new Error(message.error.message), { code: message.error.code }));
+          if (message.error) pending.reject(Object.assign(new Error(message.error.message), { code: message.error.code, details: message.error.details }));
           else pending.resolve(message.result);
         }
       });
       socket.on('error', () => {});
       socket.on('close', () => {
-        if (this.socket === socket) this.socket = null;
+        if (this.socket === socket) { this.socket = null; this.agreement = null; }
         for (const [id, pending] of this.pending) {
           if (pending.socket !== socket) continue;
           clearTimeout(pending.timer);
@@ -71,6 +73,12 @@ export class Peer extends EventEmitter {
         socket.once('error', error => { clearTimeout(timer); reject(error); });
       });
       if (this.closed) throw new Error('Desktop bridge closed during connection setup');
+      try {
+        this.agreement = validateAgreement(await this.rpc('hello', this.offer), this.offer);
+      } catch (error) {
+        if (['NOT_SUBSCRIBED', 'METHOD_NOT_FOUND'].includes(error.code)) throw apiError('API_UPGRADE_REQUIRED', 'This host cannot negotiate an IPC API. Update the host through the configured release policy.', { component: 'host' });
+        throw error;
+      }
       if (this.identity) {
         try {
           const result = await this.rpc('subscribe', this.identity);
@@ -85,7 +93,7 @@ export class Peer extends EventEmitter {
       this.lastPresence = Date.now();
     } catch (error) {
       this.socket?.destroy();
-      if (['SESSION_CONNECTED', 'OUTCOME_UNKNOWN'].includes(error.code)) throw error;
+      if (error.code?.startsWith('API_') || ['SESSION_CONNECTED', 'OUTCOME_UNKNOWN'].includes(error.code)) throw error;
       throw Object.assign(new Error('re:desktop is unavailable. Start the tray app, then retry. No access has been assumed.'), { code: 'HOST_UNAVAILABLE', cause: error });
     }
   }

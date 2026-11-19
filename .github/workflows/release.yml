@@ -1,0 +1,130 @@
+name: Publish preview
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  security:
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/security.yml
+  core:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      module: ${{ steps.core.outputs.module }}
+      provenance: ${{ steps.core.outputs.provenance }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '26'
+          cache: npm
+      - name: Require exact version and previously qualified source
+        run: node scripts/release.mjs preflight
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: npm ci
+      - run: sudo apt-get install --yes zstd
+      - run: npm run setup:bend
+      - run: npm run setup:kernel
+      - run: npm run proof:kernel
+      - run: npm run check
+      - id: core
+        run: node scripts/ci-core.mjs export
+  draft:
+    needs: [security, core]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '26'
+      - run: node scripts/release.mjs draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+  native:
+    needs: [core, draft]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '26'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/ci-core.mjs import
+        env:
+          BEND_MODULE: ${{ needs.core.outputs.module }}
+          BEND_PROVENANCE: ${{ needs.core.outputs.provenance }}
+      - run: npm run check:build
+      - run: npm test
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes xvfb libgtk-3-0t64 libnss3 libasound2t64
+          sudo chown root:root node_modules/electron/dist/chrome-sandbox
+          sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run test:tray
+      - if: runner.os != 'Linux'
+        run: npm run test:tray
+      - run: npm run package
+      - run: node scripts/packaged-check.mjs --headless
+      - run: node scripts/archive.mjs
+      - run: node scripts/archive-check.mjs
+      - name: Upload qualified assets directly to the draft
+        run: node scripts/release.mjs upload-native
+        env:
+          GH_TOKEN: ${{ github.token }}
+  publish:
+    needs: [core, native]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '26'
+          registry-url: https://registry.npmjs.org
+      - run: npm ci --prefix bootstrap --ignore-scripts
+      - name: Pack the public bootstrap
+        working-directory: bootstrap
+        run: |
+          mkdir -p ../dist
+          npm pack --pack-destination ../dist
+      - name: Verify complete inventory, upload manifest last, and publish preview
+        run: node scripts/release.mjs publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Publish npm package
+        run: node scripts/release.mjs npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          RELEASE_PUBLIC: ${{ !github.event.repository.private }}

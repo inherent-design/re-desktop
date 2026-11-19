@@ -12,7 +12,7 @@ re:desktop is a shared availability signal for one desktop, its human and cooper
 
 The app starts paused. “Allow agent access” clears the human block; “Pause agent access” revokes the current cooperative access and prevents new grants. Pausing retains waiting sessions. The previous holder must take access again after the human allows it. “End current access” releases the current holder and lets scheduling continue. A pause is the action to use when the human wants the desktop back without immediately handing it to a waiter.
 
-The menu also lists subscribed session names and a queue numbered from one. Each entry exposes its session ID, workspace and connection state. Session names and paths are literal text, including Unicode and ampersands. Status text supplements icon color. Artwork intentionally uses color rather than macOS template-image tinting. The app has no ordinary window or Dock icon on macOS. Quit removes the indicator and closes its service. Screen lock or system suspend pauses access; returning does not automatically allow it.
+The menu also lists subscribed session names and a queue numbered from one. Each entry exposes its session ID, workspace and connection state. Session names and paths are literal text, including Unicode and ampersands. Status text supplements icon color. Artwork intentionally uses color rather than macOS template-image tinting. The app has no ordinary window or Dock icon on macOS. Quit removes the indicator, closes its service, and records a deliberate-stop choice for this profile. Agent preparation cannot clear that choice; an explicit native open or operator `re-desktop start` can. Screen lock or system suspend pauses access; returning does not automatically allow it.
 
 ## Sessions and access
 
@@ -38,6 +38,6 @@ Agents can send another subscribed session an access inquiry or a reason to yiel
 
 ## Host startup and distribution
 
-The current MCP bridge requires a running native host. Offline tool discovery does not start the tray or assume access. [Distribution](distribution.md) describes accepted work on the Node/npm bootstrap, on-demand startup, independent APIs, and verified release acquisition; those features are not implemented yet.
+The installed Node/npm entry verifies the selected program and loads its per-session bridge in-process. Discovery and status do not start the tray. First subscription or explicit runtime preparation may start the shared visible native host, initially paused, under the owner-selected policy. A compatible running host is reused even when its product version differs. Deliberate Quit prevents automatic respawn. Source and standalone ASAR bridges still require manual native startup. [Distribution](distribution.md) owns program storage, API compatibility, and release acquisition.
 
 Native UI, protocol behavior, and release delivery have separate checks. [Verification](verification.md) owns the executed platform scope and remaining release limits.

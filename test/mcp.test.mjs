@@ -15,7 +15,7 @@ test('MCP SDK stdio discovery, two sessions, resources, mailbox and error schema
   t.after(async () => { await a.client.close(); await b.client.close(); await host.close(); await rm(root, { recursive: true, force: true }); });
   assert.equal(a.client.getServerVersion().name, 're-desktop');
   const tools = (await a.client.listTools()).tools;
-  assert.equal(tools.length, 9);
+  assert.equal(tools.length, 11);
   assert.ok(tools.every(t => t.inputSchema.type === 'object'));
   const one = (await tool(a.client, 'desktop_subscribe', { name: 'MCP A', workspace: process.cwd() })).data;
   const two = (await tool(b.client, 'desktop_subscribe', { name: 'MCP B', workspace: process.cwd() })).data;
@@ -69,16 +69,26 @@ test('MCP initializes offline and reports host unavailability without assuming a
   assert.match(instructions, /lease\.token.*lease_token/);
   assert.match(instructions, /OUTCOME_UNKNOWN/);
   const tools = (await a.client.listTools()).tools;
-  assert.equal(tools.length, 9);
+  assert.equal(tools.length, 11);
   for (const item of tools) {
     assert.equal(item.outputSchema?.type, 'object', `${item.name} needs a typed success response`);
-    assert.ok(item.outputSchema.properties.you);
-    assert.ok(item.outputSchema.properties.lease);
+    if (item.name.startsWith('desktop_runtime_')) {
+      assert.ok(item.outputSchema.properties.api);
+      assert.ok(item.outputSchema.properties.host_running);
+    } else {
+      assert.ok(item.outputSchema.properties.you);
+      assert.ok(item.outputSchema.properties.lease);
+    }
     for (const field of Object.values(item.inputSchema.properties ?? {})) assert.ok(field.description, `${item.name} has an undocumented parameter`);
   }
   const status = await tool(a.client, 'desktop_status');
   assert.equal(status.result.isError, true);
   assert.equal(status.data.error.code, 'HOST_UNAVAILABLE');
+  const runtime = await tool(a.client, 'desktop_runtime_status');
+  assert.equal(runtime.data.host_running, false);
+  assert.deepEqual(runtime.data.api.shared.supported, [1]);
+  assert.equal(runtime.data.startup, 'manual');
+  assert.equal((await tool(a.client, 'desktop_runtime_prepare')).data.error.code, 'HOST_UNAVAILABLE');
 });
 
 test('MCP rejects a host result that violates its advertised output schema', async t => {

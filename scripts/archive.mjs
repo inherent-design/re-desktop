@@ -1,13 +1,21 @@
-import { execFileSync } from 'node:child_process';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
+import { create } from 'tar';
 
 const { version } = JSON.parse(await readFile('package.json'));
-const folder = `re-desktop-${process.platform}-${process.arch}`;
-const filename = `re-desktop-${version}-${process.platform}-${process.arch}.${process.platform === 'win32' ? 'zip' : 'tar.gz'}`;
-if (process.platform === 'win32') execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-File', 'scripts/archive.ps1', '-Source', resolve('dist', folder), '-Destination', resolve('dist', filename)]);
-else execFileSync('tar', ['-czf', `dist/${filename}`, '-C', 'dist', folder]);
-const hash = createHash('sha256').update(await readFile(`dist/${filename}`)).digest('hex');
-await writeFile(`dist/${filename}.sha256`, `${hash}  ${filename}\n`);
-console.log(`dist/${filename}`);
+const folder = resolve('dist/builds', version, `re-desktop-${process.platform}-${process.arch}`);
+const filename = `re-desktop-${version}-${process.platform}-${process.arch}.tar.gz`;
+const file = resolve('dist', filename);
+await create({ cwd: folder, file, gzip: true, portable: true, noMtime: true }, (await readdir(folder)).sort());
+const hash = createHash('sha256');
+for await (const bytes of createReadStream(file)) hash.update(bytes);
+const sha256 = hash.digest('hex');
+await writeFile(`${file}.sha256`, `${sha256}  ${filename}\n`);
+const identity = JSON.parse(await readFile(join(folder, 'release.json')));
+const asset = { platform: process.platform, arch: process.arch, filename, sha256, size: (await stat(file)).size,
+  host: process.platform === 'darwin' ? 're-desktop.app/Contents/MacOS/re-desktop' : process.platform === 'win32' ? 're-desktop.exe' : 're-desktop',
+  bridge: 'bridge/src/mcp.mjs', signing: 'unsigned-preview' };
+await writeFile(`${file}.json`, JSON.stringify({ ...identity, asset }, null, 2) + '\n');
+console.log(file);

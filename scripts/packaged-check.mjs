@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { once } from 'node:events';
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -10,7 +10,8 @@ import { mcpClient, tool } from './mcp-client.mjs';
 import { startHost } from '../src/host.mjs';
 
 const execute = promisify(execFile);
-const folder = resolve(`dist/re-desktop-${process.platform}-${process.arch}`);
+const { version } = JSON.parse(await readFile('package.json'));
+const folder = resolve('dist/builds', version, `re-desktop-${process.platform}-${process.arch}`);
 const command = join(folder, process.platform === 'darwin' ? 're-desktop.app/Contents/MacOS/re-desktop' : process.platform === 'win32' ? 're-desktop.exe' : 're-desktop');
 const entry = join(folder, process.platform === 'darwin' ? 're-desktop.app/Contents/Resources' : 'resources', 'app.asar/src/mcp.mjs');
 const native = process.platform === 'darwin' && !process.argv.includes('--headless');
@@ -27,7 +28,7 @@ try {
   } else host = await startHost({ root });
   a = await mcpClient(root, 'packaged-a', { command, entry });
   b = await mcpClient(root, 'packaged-b', { command, entry });
-  assert.equal((await a.client.listTools()).tools.length, 9);
+  assert.equal((await a.client.listTools()).tools.length, 11);
   let ready;
   for (let attempt = 0; attempt < 60; attempt++) {
     ready = await tool(a.client, 'desktop_status');
@@ -35,7 +36,7 @@ try {
     await delay(50);
   }
   assert.equal(ready.data.availability, 'blocked');
-  report.checks.push('Packaged Electron Node mode loads the ASAR MCP entry and all nine tools without external Node');
+  report.checks.push('Packaged Electron Node mode loads the ASAR MCP entry and all eleven tools without external Node');
   const one = (await tool(a.client, 'desktop_subscribe', { name: 'Packaged A', workspace: root })).data;
   const two = (await tool(b.client, 'desktop_subscribe', { name: 'Packaged B', workspace: root })).data;
   if (native) {

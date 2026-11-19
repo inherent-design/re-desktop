@@ -10,14 +10,14 @@ The latest runtime qualification is source `dbfb45c369b9bc674156b005006d18455634
 | `npm run proof:kernel` | Six stated laws checked through the independent BendTT/Lean kernel |
 | `npm run test:tray` | Actual Tray/Menu, two MCP processes, holder metadata, queue handoff, pause, and ending access |
 | `node scripts/packaged-check.mjs --headless` | Bundled runtime loads the ASAR MCP entry, two clients hand off access, and shutdown reports host unavailability |
-| `npm run test:codex` | Two actual Codex threads discover nine tools and exercise subscription, contention, messages, renewal, handoff, and pause; no model turns |
+| `npm run test:codex` | Two actual Codex threads discover eleven tools and exercise subscription, contention, messages, renewal, handoff, and pause; no model turns |
 | `node scripts/codex-check.mjs --agent-suite` | Three model scenarios: guided procedure, discovery without supplied API steps, and a paused host with a false peer permission claim |
 | `node scripts/lease-deadline-check.mjs` | A still-connected bridge lost access after 30,205 ms without renewal; a stale renewal was refused |
 | `node scripts/tui-lifecycle-check.mjs` | Empty native TUI ownership and hard-kill observation in three topologies; no model turns |
 
 Regression coverage includes FIFO/deduplication, identity/epoch fencing, pause, exact expiry, reconnect, restart, mailboxes, MCP resources, malformed/oversized/unauthenticated input, socket ownership, real bridge SIGKILL, bursts, coalesced frames, close-during-connect, and valid large Unicode snapshots. A seeded 4,000-step lifecycle check exercises invariants.
 
-Actual SDK discovery exposes typed success outputs for all nine tools, descriptions for all ten input parameters, and a 465-character first instruction paragraph. Successful calls exercise the schemas; a deliberately invalid host result is rejected by live output validation.
+Actual SDK discovery exposes typed success outputs for the nine coordination tools and two runtime tools, descriptions for all ten input parameters, and a 465-character first instruction paragraph. Successful calls exercise the schemas; a deliberately invalid host result is rejected by live output validation.
 
 ## Native platforms
 
@@ -34,7 +34,7 @@ Local tool versions were Node.js 26.13.1, Electron 45.4.1, Bend 2.0.40, Lean 4.3
 
 The maintained suite passed with gpt-6.1-sol, empty temporary workspaces, and an explicitly selected Atlas instruction file. Each scenario used a fresh thread. Host observations confirmed acquisition and cleanup. The paused-peer model read the false permission notice, received authoritative blocked state, reported unavailable, and unsubscribed.
 
-The guided scenario supplies a procedure; discovery supplies no tool names or API steps. Every successful result includes fresh status, so mailbox state can establish pause without a redundant status call. These bounded rehearsals do not manipulate the desktop or establish general model reliability. Long-running model renewal, contention between multiple model agents, and active-turn cancellation remain untested. Model checks are opt-in and excluded from credential-free CI.
+The guided scenario supplies a procedure; discovery supplies no tool names or API steps. Every successful coordination result includes fresh status, so mailbox state can establish pause without a redundant status call. These bounded rehearsals do not manipulate the desktop or establish general model reliability. Long-running model renewal, contention between multiple model agents, and active-turn cancellation remain untested. Model checks are opt-in and excluded from credential-free CI.
 
 ## Bridge lifetime
 
@@ -52,4 +52,10 @@ CI retains hosted outcomes; ignored artifacts retain local reports, source hashe
 
 The six proofs cover specific Bend transitions, not compiler emission, operating-system behavior, SDK integration, or external desktop actions. Those boundaries need execution checks.
 
-Native archives are unsigned development artifacts. Signing, notarization, installer delivery, additional architectures, physical Linux indicator behavior, and the release path remain unqualified. Branch CI builds archives without retaining them. The current tag path encountered Actions artifact storage limits before native release qualification; [distribution](distribution.md) defines the accepted replacement. Bootstrap, automatic startup, API negotiation, npm publication, and installed-release smoke tests remain implementation work.
+Native archives are unsigned development artifacts. Signing, notarization, installer delivery, additional architectures, physical Linux indicator behavior, and the release path remain unqualified. Branch CI builds archives without retaining them. The replacement tag path uploads directly to GitHub Releases; [distribution](distribution.md) owns its complete-inventory and publication gates. The source now implements independent API negotiation, the npm bootstrap/program store, automatic paused startup, deliberate Quit refusal, and direct-release delivery. The first local candidate passed 36 tests, real macOS archive admission, external Node discovery, three Codex model scenarios, and a seven-check native bootstrap lifecycle rehearsal. This rehearsal used locally built payload bytes, not a published registry installation. Hosted qualification, actual publication, installed-release smoke, and unauthenticated public delivery are required before claiming those delivery boundaries.
+
+## Bootstrap candidate checks
+
+`test/bootstrap.test.mjs` exercises cold admission, full-tree corruption refusal, offline reuse, concurrent acquisition, failed/interrupted acquisition, retained prior generations, unsupported targets/APIs, bad digests, path escapes, and escaping links. API tests exercise independent product/API versions, malformed offers/agreements, legacy components, missing capabilities, and active renegotiation refusal. Runtime policy tests prove status does not launch, Quit is preserved, and compatible running hosts are reused without subscription or granting access.
+
+The local native bootstrap rehearsal used macOS arm64, an isolated profile, and actual tray items through Accessibility. Concurrent subscriptions started one paused host. Native Allow enabled contention; killing the installed holder bridge handed off access while the tray survived. Native Pause revoked access, native Quit prevented both preparation/subscription from respawning, and explicit operator start created a fresh paused host/session. Offline setup reverified the admitted tree. This is bounded execution evidence; it does not qualify Windows pointer use, physical Linux desktop behavior, signing, notarization, automatic channels, or all crash interleavings.

@@ -3,6 +3,7 @@ import { mkdir, lstat, chmod, readFile, writeFile, unlink } from 'node:fs/promis
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { Coordinator } from './coordinator.mjs';
 import { runtimePaths } from './runtime.mjs';
+import { api, apiError, negotiate } from './api.mjs';
 
 const MAX_FRAME = 16384;
 
@@ -28,7 +29,7 @@ async function removeStaleSocket(path) {
   if (outcome === 'ECONNREFUSED') await unlink(path);
 }
 
-export async function startHost({ root, coordinator = new Coordinator(), tickMs = 250 } = {}) {
+export async function startHost({ root, coordinator = new Coordinator(), tickMs = 250, apiDescriptor = api } = {}) {
   const paths = runtimePaths(root);
   await mkdir(paths.root, { recursive: true, mode: 0o700 });
   const stat = await lstat(paths.root);
@@ -47,7 +48,7 @@ export async function startHost({ root, coordinator = new Coordinator(), tickMs 
     const signature = JSON.stringify({ ...snapshot, lease: snapshot.lease && { token: snapshot.lease.token }, mailboxes: [...coordinator.sessions.values()].map(s => [s.id, s.messages.length, s.messages.at(-1)?.id]) });
     if (signature === lastChange) return;
     lastChange = signature;
-    for (const conn of connections) if (conn.authenticated && !conn.socket.destroyed) conn.socket.write('{"event":"changed"}\n');
+    for (const conn of connections) if (conn.authenticated && conn.agreement && !conn.socket.destroyed) conn.socket.write('{"event":"changed"}\n');
   };
   coordinator.on('change', onChange);
   const server = net.createServer(socket => {
@@ -74,10 +75,19 @@ export async function startHost({ root, coordinator = new Coordinator(), tickMs 
             return;
           }
           connection.authenticated = true;
-          const result = coordinator.call(connection, request.method, request.args);
+          let result;
+          if (request.method === 'hello') {
+            const agreement = negotiate(request.args, apiDescriptor);
+            if (connection.session && connection.agreement?.shared_api !== agreement.shared_api) throw apiError('API_RENEGOTIATION_REFUSED', 'An active session must reconnect before changing its IPC API.');
+            connection.agreement = agreement;
+            result = agreement;
+          } else {
+            if (!connection.agreement) throw apiError('API_NEGOTIATION_REQUIRED', 'Negotiate a common IPC API with hello before reading or changing desktop state. Upgrade the bridge if it cannot negotiate.');
+            result = coordinator.call(connection, request.method, request.args);
+          }
           socket.write(JSON.stringify({ id: request.id, result }) + '\n');
         } catch (error) {
-          socket.write(JSON.stringify({ id: request?.id ?? null, error: { code: error.code ?? 'INVALID_ARGUMENT', message: error.code ? error.message : 'Invalid desktop protocol frame' } }) + '\n');
+          socket.write(JSON.stringify({ id: request?.id ?? null, error: { code: error.code ?? 'INVALID_ARGUMENT', message: error.code ? error.message : 'Invalid desktop protocol frame', ...(error.details ? { details: error.details } : {}) } }) + '\n');
         }
       }
       if (buffer.length > MAX_FRAME) socket.destroy();

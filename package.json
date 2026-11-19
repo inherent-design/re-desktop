@@ -1,6 +1,6 @@
 {
   "name": "re-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0-preview.1",
   "description": "A native desktop availability light for people and agents, powered by Bend",
   "homepage": "https://github.com/inherent-design/re-desktop#readme",
   "repository": {
@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",
-    "electron": "45.4.1"
+    "electron": "45.4.1",
+    "tar": "7.5.23"
   }
 }

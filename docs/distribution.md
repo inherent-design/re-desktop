@@ -1,12 +1,12 @@
 # Distribution and compatibility
 
-Accepted direction; implementation pending. The Node/npm bootstrap and independent API negotiation are approved for implementation. Current source requires a running native host and has no published bootstrap package, update channel, or release installation workflow.
+The Node/npm bootstrap selects exact native releases, verifies cached program generations, and loads a per-session MCP bridge. The shared visible tray can start on subscription or preparation and always starts paused. Source mode still requires manual native startup. This document describes implemented preview delivery; automatic channels, signed stable releases, and package-manager installers remain future work.
 
 ## Recipient setup
 
-Provide a stable MCP entry through a small Node/npm bootstrap, with Node 24 or newer. The intended package is `@inherent-design/re-desktop`; it is not published yet. Retain standalone native operation with the bundled runtime. Recipients need no checkout, compiler, Bend installation, or Lean installation.
+The stable MCP entry is the small `@inherent-design/re-desktop` npm bootstrap, with Node 24 or newer. `re-desktop setup` prepares its exact native selection and prints client configuration. Retain standalone native operation with the bundled runtime. Recipients need no checkout, compiler, Bend installation, or Lean installation.
 
-Initial setup prefetches and verifies the selected native release, then prints MCP configuration or applies only the requested client change. Warm startup uses verified bytes without a network dependency. A cold invocation without a payload must acquire it within a bounded startup budget or fail clearly. A missing exact release never becomes an arbitrary version fallback.
+Setup prefetches and verifies the selected native release, then prints JSON client configuration without changing client settings. `config` prints the same literal absolute Node/CLI arguments without acquisition. `prefetch` prepares without selecting. `setup --version <exact-version>` changes the pin for new connections; `--offline` forbids acquisition. Warm startup uses verified bytes without a network dependency. A cold invocation without a payload must acquire it within a bounded startup budget or fail clearly. A missing exact release never becomes an arbitrary version fallback.
 
 Initial qualified native targets are macOS arm64, Windows x64, and Linux x64. Additional targets need executed qualification. Native payloads include the application, MCP bridge, compiled Bend core, dependencies, and runtime.
 
@@ -36,7 +36,7 @@ flowchart LR
     Human[Human controls] --> Host
 ```
 
-Prefer loading a Node-compatible bridge into the bootstrap's session process. External Node cannot assume Electron ASAR support; the release needs an appropriate bridge payload. A separate child requires parent-death and EOF tests. The shared tray outlives individual agents and must not inherit their MCP stdio handles.
+The bootstrap loads its verified Node-compatible bridge into the session process. External Node cannot assume Electron ASAR support; releases include an external `bridge/` payload. The shared tray outlives individual agents and must not inherit their MCP stdio handles.
 
 Read-only discovery/status does not launch or update the host. Preparation or first subscription can start one visible host per user/profile under the configured policy. Concurrent clients must converge on an authenticated readiness handshake. Headless or unsupported desktop sessions report actual availability.
 
@@ -44,13 +44,13 @@ A fresh host starts paused. Runtime readiness does not grant access, and no MCP 
 
 ## Program store and updates
 
-Keep admitted generations in per-user application data, separately from disposable downloads and session state. Use exact release digests and targets, owned candidates, bounded acquisition, a short-lived writer lock, and atomic readiness. Validate version, protocol, target, final bytes, and the available publisher/OS trust basis before execution. Checksums from the same HTTPS origin are not independent publisher signatures.
+Admitted generations live in per-user application data: `~/Library/Application Support/re-desktop/programs` on macOS, `%LOCALAPPDATA%/re-desktop/programs` on Windows, and `$XDG_DATA_HOME/re-desktop/programs` or `~/.local/share/re-desktop/programs` on Linux. Each exact version/target contains a ready receipt and program tree. `selection.json` records the owner pin. Downloads use private candidate directories in this store and are removed after admission or a caught failure. Runtime state stays separate in `~/.re-desktop`. `RE_DESKTOP_STORE` and `RE_DESKTOP_RUNTIME` provide explicit owner/test overrides. Acquisition uses the fixed `inherent-design/re-desktop` origin, exact published tags, owned candidates, a writer lock, and atomic readiness. Metadata is bounded to 1 MiB; compressed assets to 512 MiB; expanded archives to 2 GiB and 20,000 members. Private previews use an existing gh credential helper, without copying credentials. Network requests and writer waits are bounded. Setup before MCP configuration avoids a cold download during a client startup timeout. Validate version, protocol, target, final bytes, and the available publisher/OS trust basis before execution. Checksums from the same HTTPS origin are not independent publisher signatures.
 
-Validate the complete native bundle. Reject path escapes and ambiguous members while preserving required internal framework links and executable attributes. Electron payloads exceed empack's single-engine archive limits; derive bounds from measured inventories. Explicit development overrides stay outside release slots.
+Admission checks the manifest source/version/target/APIs, asset size/SHA-256, archive paths/member kinds/links, and fixed bridge/native entry identities. Warm reuse rechecks the full regular-file hashes, links, and executable attributes against the admitted receipt. Corruption is refused; it does not silently replace a live generation. Repair an owned stopped generation or select a different exact release. Crashed candidates can remain as inactive material; they never become ready. Reject path escapes and ambiguous members while preserving required internal framework links and executable attributes. The first local macOS payload measured about 124 MiB compressed, including its external Node bridge; empack's smaller engine limit would reject it. Explicit development overrides stay outside release slots.
 
-Support exact pins first. An enrolled stable channel can later check/stage compatible releases, with activation at an eligible cold start. Bootstrap updates stay with their package/installer owner. Development channels require opt-in and intentional prerelease publication, rather than every push to dev.
+Exact pins are implemented. An enrolled stable channel is future work; there is no automatic latest-version selection. Bootstrap updates stay with their package/installer owner. Development channels require opt-in and intentional prerelease publication, rather than every push to dev.
 
-Retain active, staged, and prior verified generations. Do not overwrite files under live processes or restart a host serving sessions. A coordinated operator restart ends access and creates fresh identities. Rollback preserves user settings and never restores leases. Offline reuse follows the saved policy with freshness qualified. Cleanup is limited to owned inactive material.
+Prepared and prior verified generations are retained; automatic garbage collection is not implemented. Do not overwrite files under live processes or restart a host serving sessions. A coordinated operator restart ends access and creates fresh identities. Rollback preserves user settings and never restores leases. Offline reuse follows the saved policy with freshness qualified. Cleanup is limited to owned inactive material.
 
 ## Release pipeline
 
@@ -58,17 +58,17 @@ Retain active, staged, and prior verified generations. Do not overwrite files un
 2. Compile/prove Bend once and record source/output provenance. Package every target from those bytes. Apply signing, notarization, and installer policy before calculating final digests.
 3. Coordinate one draft GitHub Release and upload packages directly from tag-only jobs. Keep branch/PR workflows credential-free and avoid large Actions artifacts as the release rendezvous.
 4. Verify the complete expected inventory, source/target/API identities, digests, and signatures. Exercise actual downloaded packages, including their MCP entry.
-5. Publish only a complete qualified release, then any channel pointer last. Failure leaves the previous selection intact. Identical retries are idempotent; changed bytes under an immutable identity are refused.
+5. Publish only a complete qualified release, then any channel pointer last. Failure leaves previous installed selections intact; incomplete native builds remain a draft. A registry failure after a complete GitHub publication is reported separately and can be retried without changing release bytes. Identical retries are idempotent; changed bytes under an immutable identity are refused.
 
-The release description binds source revision, product/bootstrap compatibility, independent APIs, shared IPC capabilities, platform constraints, compiled-core provenance, asset sizes/digests, and fixed entry points. It contains no recipient credentials or arbitrary executable-selection commands.
+The uploaded `release.json` manifest binds source revision, product/bootstrap compatibility, independent APIs, shared IPC capabilities, platform constraints, compiled-core provenance, asset sizes/digests, and fixed entry points. It contains no recipient credentials or arbitrary executable-selection commands.
 
-Public delivery must be tested without publisher credentials. Private previews require configured reader access. Attach the npm tarball to the GitHub Release as well as publishing it to npm. An unsigned preview must be identified as such and does not qualify signed production delivery.
+Public delivery must be tested without publisher credentials. The workflow accepts an intentional `v<version>` preview tag only after that exact source passed dev/main branch CI. `.github/workflows/release.yml` repeats source checks, compiles/proves Bend once, qualifies all three native targets and their extracted Node bridges, and verifies the downloaded inventory before publishing. The bootstrap npm tarball is also attached. The org `NPM_TOKEN` is exposed only to the final npm publish step; no token value is stored in release assets or recipient configuration. Public publication requests npm provenance; private previews do not claim it. Trusted publishing can replace the initial token after npm enrollment. Private previews require configured reader access. An unsigned preview must be identified as such and does not qualify signed production delivery.
 
 ## Platform requirements
 
 Linux may need a supported installer for Chromium sandbox ownership and desktop indicator support. An unprivileged extractor cannot establish root ownership; report installation requirements rather than disabling sandboxing or initiating elevation. Xvfb construction is not GNOME/KDE visibility evidence.
 
-Electron's built-in updater supports macOS and Windows, subject to signing and installer format. A portable program store does not remove OS requirements. The current packaged MCP entry depends on Electron's RunAsNode fuse; disabling it requires a different runtime arrangement and another packaged check.
+Electron's built-in updater supports macOS and Windows, subject to signing and installer format; this preview uses the exact-generation store rather than that updater. A portable program store does not remove OS requirements. The current packaged MCP entry depends on Electron's RunAsNode fuse; disabling it requires a different runtime arrangement and another packaged check.
 
 Homebrew, winget, and Linux repositories can use the same release identities. Define one update owner per installation so package-manager and application updates do not race.
 

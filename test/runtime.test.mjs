@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, mkdir, cp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { runtimeManager } from '../bootstrap/lib/runtime.mjs';
+import { startHost } from '../src/host.mjs';
+import api from '../api.json' with { type: 'json' };
+
+test('runtime probes never launch; preparation respects Quit and reuses compatible independent host versions', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'rd-policy-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const program = join(root, 'program'), runtime = join(root, 'runtime');
+  await mkdir(join(program, 'bridge/src'), { recursive: true });
+  await mkdir(runtime);
+  for (const file of ['peer.mjs', 'runtime.mjs', 'api.mjs']) await cp(`src/${file}`, join(program, 'bridge/src', file));
+  for (const file of ['package.json', 'api.json']) await cp(file, join(program, 'bridge', file));
+  const manager = await runtimeManager({ program, manifest: { version: '8.0.0', source: 'b'.repeat(40), api }, asset: { host: 'intentionally-absent', platform: process.platform, arch: process.arch, signing: 'test' } }, { root: runtime });
+  assert.equal((await manager.status()).host_running, false);
+  await writeFile(join(runtime, 'human-quit.json'), '{}');
+  await assert.rejects(manager.prepare(), { code: 'HOST_START_REFUSED' });
+  assert.equal((await manager.status()).human_quit, true);
+  const host = await startHost({ root: runtime, apiDescriptor: { ...api, product: '3.0.0' } });
+  t.after(() => host.close());
+  const prepared = await manager.prepare();
+  assert.equal(prepared.host_running, true);
+  assert.equal(prepared.version, '8.0.0');
+  assert.equal(prepared.agreement.host_version, '3.0.0');
+  assert.equal(host.coordinator.sessions.size, 0);
+  assert.equal(host.coordinator.snapshot().user_blocked, true);
+});

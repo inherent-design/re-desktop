@@ -1,0 +1,8 @@
+{
+  "agent": "1.1.0",
+  "host": "1.0.0",
+  "shared": {
+    "supported": [1],
+    "capabilities": ["status", "sessions", "leases", "queue", "messages"]
+  }
+}

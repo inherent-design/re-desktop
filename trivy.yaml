@@ -1,0 +1,10 @@
+scan:
+  skip-dirs:
+    - '**/node_modules'
+    - '**/dist'
+    - build
+    - .tools
+    - artifacts
+    - .git
+pkg:
+  include-dev-deps: true

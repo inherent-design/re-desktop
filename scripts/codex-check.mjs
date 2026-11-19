@@ -10,13 +10,16 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { once } from 'node:events';
 import { startHost } from '../src/host.mjs';
 
-let mode = 'protocol', instructionsFile;
+let mode = 'protocol', instructionsFile, entry = resolve('src/mcp.mjs');
+const entryArgs = [];
 const args = process.argv.slice(2);
 const modes = { '--agent-turn': 'guided', '--agent-discovery': 'discovery', '--agent-paused-peer': 'paused-peer', '--agent-suite': 'suite' };
 for (let index = 0; index < args.length; index++) {
   const flag = args[index];
   if (modes[flag] && mode === 'protocol') mode = modes[flag];
   else if (flag === '--instructions-file' && !instructionsFile && isAbsolute(args[index + 1] ?? '')) instructionsFile = args[++index];
+  else if (flag === '--entry' && isAbsolute(args[index + 1] ?? '')) entry = args[++index];
+  else if (flag === '--entry-arg' && args[index + 1]) entryArgs.push(args[++index]);
   else throw new Error('Use one of --agent-turn, --agent-discovery, --agent-paused-peer or --agent-suite; optionally --instructions-file /absolute/AGENTS.md');
 }
 if (instructionsFile && mode === 'protocol') throw new Error('--instructions-file requires an explicit model scenario');
@@ -41,7 +44,7 @@ host.coordinator.call = (connection, method, args) => {
   if (activeScenario && method !== 'presence') activeScenario.operations.push({ method, availability: result.availability, userBlocked: result.user_blocked, heldByCaller: Boolean(result.holder && result.holder.session_id === result.you?.session_id), remainingMs: result.lease?.remaining_ms ?? null });
   return result;
 };
-const config = `{re_desktop={command=${JSON.stringify(process.execPath)},args=[${JSON.stringify(resolve('src/mcp.mjs'))}],env={RE_DESKTOP_RUNTIME=${JSON.stringify(root)}}}}`;
+const config = `{re_desktop={command=${JSON.stringify(process.execPath)},args=[${[entry, ...entryArgs].map(value => JSON.stringify(value)).join(',')}],env={RE_DESKTOP_RUNTIME=${JSON.stringify(root)}${process.env.RE_DESKTOP_STORE ? `,RE_DESKTOP_STORE=${JSON.stringify(process.env.RE_DESKTOP_STORE)}` : ''}}}}`;
 const child = spawn('codex', ['-c', `mcp_servers=${config}`, '-c', 'features.apps=false', 'app-server', '--listen', 'stdio://'], { stdio: ['pipe', 'pipe', 'pipe'] });
 const pending = new Map();
 let sequence = 0, buffer = '', diagnosticBytes = 0;
@@ -72,6 +75,7 @@ const call = (method, params) => new Promise((resolve, reject) => {
 const reportPath = `artifacts/codex-${mode}-acceptance.json`;
 const report = { codex: version, node: process.version, platform: process.platform, started: new Date().toISOString(), mode, modelTurns: 0, globalConfigurationChanged: false, checks: [], scenarios: [],
   workspace: 'Empty owned temporary workspace; no project README or AGENTS.md',
+  entry: { path: entry, args: entryArgs, sha256: hash(await readFile(entry)) },
   instructionsBasis: instructionsFile ? { path: instructionsFile, sha256: hash(developerInstructions) } : 'Normal Codex host instructions; no fixture override',
   sourceSha256: Object.fromEntries(await Promise.all(['src/mcp.mjs', 'scripts/codex-check.mjs'].map(async path => [path, hash(await readFile(path))]))) };
 try {
@@ -84,14 +88,14 @@ try {
     for (let attempt = 0; attempt < 100; attempt++) {
       const status = await call('mcpServerStatus/list', { threadId, serverName: 're_desktop' });
       server = status.data.find(s => s.name === 're_desktop');
-      if (server && Object.keys(server.tools).length === 9) break;
+      if (server && Object.keys(server.tools).length === 11) break;
       if (child.exitCode !== null) throw new Error('Owned Codex app-server exited');
       await delay(100);
     }
-    assert.equal(Object.keys(server?.tools ?? {}).length, 9);
+    assert.equal(Object.keys(server?.tools ?? {}).length, 11);
     assert.equal(server.serverInfo.name, 're-desktop');
   }
-  report.checks.push('Two actual Codex ephemeral threads discovered all nine MCP tools');
+  report.checks.push('Two actual Codex ephemeral threads discovered all eleven MCP tools');
   const tool = async (threadId, name, args = {}) => {
     const response = await call('mcpServer/tool/call', { threadId, server: 're_desktop', tool: name, arguments: args });
     const result = response.result ?? response;

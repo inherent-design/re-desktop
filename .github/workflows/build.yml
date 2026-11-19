@@ -2,7 +2,6 @@ name: Build and qualify
 on:
   push:
     branches: [main, dev]
-    tags: ['v*']
     paths-ignore: ['docs/**', '**/*.md']
   pull_request:
     paths-ignore: ['docs/**', '**/*.md']
@@ -12,14 +11,22 @@ permissions:
   contents: read
 
 jobs:
+  security:
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/security.yml
+
   bend:
     runs-on: ubuntu-latest
     outputs:
       module: ${{ steps.core.outputs.module }}
       provenance: ${{ steps.core.outputs.provenance }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '26'
           cache: npm
@@ -40,8 +47,10 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '26'
           cache: npm
@@ -69,32 +78,4 @@ jobs:
       - run: npm run package
       - run: node scripts/packaged-check.mjs --headless
       - run: node scripts/archive.mjs
-      - uses: actions/upload-artifact@v7
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          name: desktop-${{ runner.os }}-${{ runner.arch }}
-          path: |
-            dist/*.tar.gz
-            dist/*.zip
-            dist/*.sha256
-            artifacts/tray-acceptance.json
-          if-no-files-found: error
-
-  draft-release:
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    needs: desktop
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: desktop-*
-          path: release-artifacts
-          merge-multiple: true
-      - name: Create a draft from a deliberately pushed release tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" release-artifacts/*.tar.gz release-artifacts/*.zip release-artifacts/*.sha256 --verify-tag --draft --generate-notes
+      - run: node scripts/archive-check.mjs

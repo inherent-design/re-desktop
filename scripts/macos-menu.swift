@@ -53,7 +53,10 @@ func restorePointer() {
     CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: original, mouseButton: .left)?.post(tap: .cghidEventTap)
   }
 }
-if !CommandLine.arguments.contains("--select-only") { click(statusPoint) }
+if !CommandLine.arguments.contains("--select-only") {
+  let open = AXUIElementPerformAction(items[0], kAXPressAction as CFString)
+  if open != .success && open != .cannotComplete { click(statusPoint) }
+}
 var observed = "not_found"
 for _ in 0..<30 {
   if let item = find(bar, CommandLine.arguments[2]) ?? find(app, CommandLine.arguments[2]) {

@@ -2,7 +2,7 @@
 
 Report vulnerabilities privately to [mannie@inherent.design](mailto:mannie@inherent.design), the contact listed on the organization's public profile. Include the affected revision or release, operating system, reproduction, impact, and any known mitigation. Do not include credentials or unrelated private data in a public issue.
 
-Security fixes target the maintained source and latest supported release. The project is experimental and has no published release yet. Update and scan automation is being prepared; configuration will be distinguished from observed execution in the development documentation.
+Security fixes target the maintained source and latest preview. The project is experimental. Renovate opens reviewed dependency/security updates against dev; Trivy scans source, locked dependencies, misconfiguration, and potential secrets in CI and daily. HIGH/CRITICAL findings fail the gate. Reports omit credential matches and source excerpts. Code-scanning reports are uploaded when the repository is public; private execution uses job summaries without enabling paid features. These scans do not establish complete coverage of Electron/Chromium binary vulnerabilities. Native previews are unsigned; release checksums from the same HTTPS origin are not independent publisher signatures.
 
 ## Scope
 
