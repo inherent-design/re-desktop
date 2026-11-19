@@ -96,6 +96,7 @@ async function inspectArchive(path) {
     names.add(path); size += entry.size;
     if (size > limits.unpacked) invalid ??= 'Program archive exceeds its unpacked limit.';
     if (entry.type === 'SymbolicLink' && (entry.linkpath.startsWith('/') || entry.linkpath.includes('\\') || !safePath(posix.normalize(posix.join(posix.dirname(path), entry.linkpath))))) invalid ??= 'Archive link escapes its generation.';
+    if (invalid) parser.abort(failure('ARCHIVE_INVALID', invalid));
   } });
   await pipeline(createReadStream(path), createGunzip(), new Transform({ transform(chunk, encoding, callback) {
     bytes += chunk.length;
@@ -118,11 +119,16 @@ export function validateManifest(manifest, version, target) {
   if (asset.filename !== `re-desktop-${version}-${target}.tar.gz` || asset.host !== expectedHost || asset.bridge !== 'bridge/src/mcp.mjs' || asset.signing !== 'unsigned-preview' || !/^[a-f0-9]{64}$/.test(asset.sha256) || !Number.isSafeInteger(asset.size) || asset.size < 1 || asset.size > limits.archive) throw failure('RELEASE_INVALID', 'Release asset metadata is invalid; this bootstrap currently admits unsigned previews only.');
   return asset;
 }
-async function publicFetch(url) {
+function budget(deadline) {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw failure('DOWNLOAD_FAILED', 'Release acquisition exceeded its 180-second network budget. Retry setup when the connection is available.');
+  return remaining;
+}
+async function publicFetch(url, deadline) {
   for (let redirect = 0; redirect < 6; redirect++) {
     const location = new URL(url);
     if (location.protocol !== 'https:' || !['api.github.com', 'github.com', 'release-assets.githubusercontent.com', 'objects.githubusercontent.com'].includes(location.hostname)) throw failure('RELEASE_INVALID', 'Unexpected release redirect.');
-    const response = await fetch(location, { redirect: 'manual', signal: AbortSignal.timeout(180000), headers: { 'User-Agent': 'inherent-design-re-desktop', Accept: 'application/vnd.github+json' } });
+    const response = await fetch(location, { redirect: 'manual', signal: AbortSignal.timeout(budget(deadline)), headers: { 'User-Agent': 'inherent-design-re-desktop', Accept: 'application/vnd.github+json' } });
     if ([301, 302, 303, 307, 308].includes(response.status)) { url = new URL(response.headers.get('location'), location); await response.body?.cancel(); continue; }
     return response;
   }
@@ -133,27 +139,29 @@ async function limitedText(response, limit) {
   for await (const chunk of response.body) { bytes += chunk.length; if (bytes > limit) throw failure('RELEASE_INVALID', 'Release metadata exceeds its limit.'); chunks.push(chunk); }
   return Buffer.concat(chunks).toString('utf8');
 }
-async function releaseMetadata(version) {
+async function releaseMetadata(version, deadline) {
   const path = `repos/${repository}/releases/tags/v${version}`;
-  const response = await publicFetch(`https://api.github.com/${path}`);
+  const response = await publicFetch(`https://api.github.com/${path}`, deadline);
   if (response.ok) return { data: JSON.parse(await limitedText(response, limits.manifest * 4)), privateReader: false };
   if (![401, 403, 404].includes(response.status)) throw failure('DOWNLOAD_FAILED', `GitHub release lookup returned HTTP ${response.status}.`);
   // gh owns its existing credentials; they are never copied into the store or logs.
-  try { return { data: JSON.parse((await execute('gh', ['api', path], { timeout: 20000, maxBuffer: limits.manifest * 4 })).stdout), privateReader: true }; }
+  await response.body?.cancel();
+  try { return { data: JSON.parse((await execute('gh', ['api', path], { timeout: Math.min(20000, budget(deadline)), maxBuffer: limits.manifest * 4 })).stdout), privateReader: true }; }
   catch { throw failure('DOWNLOAD_FAILED', 'Release is unavailable. Private previews require an already authenticated gh reader; offline use requires a prepared generation.'); }
 }
-async function download(data, asset, destination, privateReader, maximum) {
+async function download(data, asset, destination, privateReader, maximum, deadline) {
   if (privateReader) {
     await new Promise((resolve, reject) => {
+      const remaining = budget(deadline);
       const child = spawn('gh', ['api', `repos/${repository}/releases/assets/${asset.id}`, '-H', 'Accept: application/octet-stream'], { stdio: ['ignore', 'pipe', 'ignore'] });
-      const timer = setTimeout(() => { child.kill(); reject(failure('DOWNLOAD_FAILED', 'Release download timed out.')); }, 180000);
+      const timer = setTimeout(() => { child.kill(); reject(failure('DOWNLOAD_FAILED', 'Release download timed out.')); }, remaining);
       let count = 0;
       const exit = new Promise((res, rej) => { child.once('error', rej); child.once('exit', code => code === 0 ? res() : rej(failure('DOWNLOAD_FAILED', 'Authenticated release download failed.'))); });
       const copy = pipeline(child.stdout, new Transform({ transform(chunk, enc, cb) { count += chunk.length; cb(count > maximum ? failure('RELEASE_INVALID', 'Download exceeds its limit.') : null, chunk); } }), createWriteStream(destination, { flags: 'wx', mode: 0o600 }));
       Promise.all([copy, exit]).then(resolve, reject).finally(() => { clearTimeout(timer); if (child.exitCode === null) child.kill(); });
     });
   } else {
-    const response = await publicFetch(`https://github.com/${repository}/releases/download/${encodeURIComponent(data.tag_name)}/${encodeURIComponent(asset.name)}`);
+    const response = await publicFetch(`https://github.com/${repository}/releases/download/${encodeURIComponent(data.tag_name)}/${encodeURIComponent(asset.name)}`, deadline);
     if (!response.ok) throw failure('DOWNLOAD_FAILED', `Release download returned HTTP ${response.status}.`);
     let count = 0;
     await pipeline(response.body, new Transform({ transform(chunk, enc, cb) { count += chunk.length; cb(count > maximum ? failure('RELEASE_INVALID', 'Download exceeds its limit.') : null, chunk); } }), createWriteStream(destination, { flags: 'wx', mode: 0o600 }));
@@ -188,23 +196,24 @@ export class ProgramStore {
     return withLock(join(this.root, '.acquire-lock'), async () => {
       const ready = await this.cached(version); if (ready) return ready;
       const stage = join(this.root, `.candidate-${randomUUID()}`);
+      const deadline = Date.now() + 180000;
       await mkdir(stage, { mode: 0o700 });
       try {
         const archive = join(stage, 'program.tar.gz'); let manifest;
         if (this.acquire) manifest = await this.acquire({ version, target: this.target, archive });
         else {
           process.stderr.write(`re:desktop: preparing ${version} for ${this.target}\n`);
-          const { data, privateReader } = await releaseMetadata(version);
+          const { data, privateReader } = await releaseMetadata(version, deadline);
           if (data.draft || data.tag_name !== `v${version}` || !Array.isArray(data.assets)) throw failure('RELEASE_INVALID', 'Only an exact published release can be prepared.');
           const candidates = data.assets.filter(asset => asset.name === 'release.json');
           if (candidates.length !== 1 || candidates[0].size > limits.manifest) throw failure('RELEASE_INVALID', 'Release manifest is missing or ambiguous.');
           const file = join(stage, 'manifest.json');
-          await download(data, candidates[0], file, privateReader, limits.manifest);
+          await download(data, candidates[0], file, privateReader, limits.manifest, deadline);
           manifest = JSON.parse(await readFile(file, 'utf8'));
           const selected = validateManifest(manifest, version, this.target);
           const assets = data.assets.filter(asset => asset.name === selected.filename);
           if (assets.length !== 1 || assets[0].size !== selected.size) throw failure('RELEASE_INVALID', 'Expected native asset is missing or changed.');
-          await download(data, assets[0], archive, privateReader, selected.size);
+          await download(data, assets[0], archive, privateReader, selected.size, deadline);
         }
         const asset = validateManifest(manifest, version, this.target);
         if ((await lstat(archive)).size !== asset.size || await hashFile(archive) !== asset.sha256) throw failure('DIGEST_MISMATCH', 'Native asset size or SHA-256 differs from the release manifest.');

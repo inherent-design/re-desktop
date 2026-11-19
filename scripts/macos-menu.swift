@@ -42,24 +42,29 @@ guard (CommandLine.arguments.count == 3 || (CommandLine.arguments.count == 4 && 
 guard AXIsProcessTrusted() else { print("accessibility_unavailable"); exit(3) }
 let app = AXUIElementCreateApplication(pid)
 AXUIElementSetMessagingTimeout(app, 0.5)
-guard let raw = attr(app, "AXExtrasMenuBar"), CFGetTypeID(raw) == AXUIElementGetTypeID() else { print("no_owned_status_bar"); exit(4) }
-let bar = unsafeBitCast(raw, to: AXUIElement.self)
-let items = children(bar)
-guard items.count == 1 else { print("unexpected_status_item_count=\(items.count)"); exit(5) }
-guard let statusPoint = center(items[0]) else { print("status_item_bounds_missing"); exit(6) }
+let selectOnly = CommandLine.arguments.contains("--select-only")
+let raw = attr(app, "AXExtrasMenuBar")
+let bar: AXUIElement? = raw.flatMap { CFGetTypeID($0) == AXUIElementGetTypeID() ? unsafeBitCast($0, to: AXUIElement.self) : nil }
+let items = bar.map(children) ?? []
+let statusPoint = items.count == 1 ? center(items[0]) : nil
+if !selectOnly {
+  guard bar != nil else { print("no_owned_status_bar"); exit(4) }
+  guard items.count == 1 else { print("unexpected_status_item_count=\(items.count)"); exit(5) }
+  guard statusPoint != nil else { print("status_item_bounds_missing"); exit(6) }
+}
 let originalPointer = CGEvent(source: nil)?.location
 func restorePointer() {
-  if let original = originalPointer, let current = CGEvent(source: nil)?.location, abs(current.x - statusPoint.x) < 2, abs(current.y - statusPoint.y) < 2 {
+  if let status = statusPoint, let original = originalPointer, let current = CGEvent(source: nil)?.location, abs(current.x - status.x) < 2, abs(current.y - status.y) < 2 {
     CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: original, mouseButton: .left)?.post(tap: .cghidEventTap)
   }
 }
-if !CommandLine.arguments.contains("--select-only") {
+if !selectOnly, let point = statusPoint {
   let open = AXUIElementPerformAction(items[0], kAXPressAction as CFString)
-  if open != .success && open != .cannotComplete { click(statusPoint) }
+  if open != .success && open != .cannotComplete { click(point) }
 }
 var observed = "not_found"
 for _ in 0..<30 {
-  if let item = find(bar, CommandLine.arguments[2]) ?? find(app, CommandLine.arguments[2]) {
+  if let item = bar.flatMap({ find($0, CommandLine.arguments[2]) }) ?? find(app, CommandLine.arguments[2]) {
     var owner: pid_t = 0
     let ownerResult = AXUIElementGetPid(item, &owner)
     let enabled = attr(item, kAXEnabledAttribute) as? Bool
@@ -77,6 +82,6 @@ for _ in 0..<30 {
   }
   usleep(50000)
 }
-print("owned_menu_item_not_actionable status=\(statusPoint) pointer=\(String(describing: CGEvent(source: nil)?.location)) \(observed)")
+print("owned_menu_item_not_actionable status=\(String(describing: statusPoint)) pointer=\(String(describing: CGEvent(source: nil)?.location)) \(observed)")
 restorePointer()
 exit(8)
