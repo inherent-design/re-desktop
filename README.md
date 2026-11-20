@@ -10,13 +10,16 @@ The project is experimental. Native previews are unsigned. See [verification](do
 
 Requires Node 24 or newer. Qualified targets are macOS arm64, Windows x64, and Linux x64.
 
-The GitHub preview includes the npm bootstrap as a tarball. Check its SHA-256 against `npm.sha256` in the attached `release.json`. [Preview release](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.2)
+Install the public npm bootstrap:
 
 ```sh
-curl --fail --location --remote-name https://github.com/inherent-design/re-desktop/releases/download/v0.2.0-preview.2/inherent-design-re-desktop-0.2.0-preview.2.tgz
-npm install --global ./inherent-design-re-desktop-0.2.0-preview.2.tgz
+npm install --global @inherent.design/re-desktop@preview
 re-desktop setup
 ```
+
+With mise, use `mise use -g 'npm:@inherent.design/re-desktop@preview'` instead of the npm install command. Mise can refuse newly published packages; after reviewing this release, approve this package with `mise use -g --tool-option allow_low_downloads=true 'npm:@inherent.design/re-desktop@preview'`. Then run `re-desktop setup`.
+
+The [GitHub preview](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.3) also attaches the bootstrap tarball. Check its SHA-256 against `npm.sha256` in the attached `release.json` before installing that file with npm.
 
 Setup verifies the exact selected native release and prints MCP configuration with absolute paths. Configure your agent client with that entry. First subscription can start the visible shared tray, initially paused. Choose **Allow agent access** from its menu before desktop work. **Pause agent access** ends held access and prevents new grants. **Quit re:desktop** prevents automatic respawn; open the native app or run `re-desktop start` to resume.
 

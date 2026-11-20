@@ -25,11 +25,13 @@ The repository can remain private for a preview, requiring recipient gh reader a
 
 Incomplete target jobs leave a draft. Diagnose the failed job; do not clobber changed assets or rewrite a tag to get a pass. Identical draft uploads are checked before reuse. If npm fails after GitHub publication, the native release remains complete and the previous npm selection remains intact. Rerun the failed publish job; the npm step accepts an already published version only when its registry integrity matches the verified tarball. Changed bytes require a new version.
 
+An accepted npm publication can remain unavailable during registry processing. The final gate waits up to 20 minutes for the public package metadata to contain the exact version and verifies its SHA-512 integrity against the attached tarball. Checking only the version-specific endpoint is insufficient: it became available before the package metadata needed by mise. A timeout requires inspection of npm processing before another publication attempt.
+
 ## Stage an existing preview
 
 If direct npm publication fails after GitHub publication, dispatch `stage-npm.yml` on main with the exact published preview version. It downloads the attached tarball, checks its digest and package identity against the published release, and sends those bytes to npm under the `preview` dist-tag. The stage step uses the existing `NPM_TOKEN`. A maintainer approves the resulting stage ID with `npm stage approve <stage-id>` or from the npm website after reviewing the staged package. Approval requires the maintainer's 2FA. [npm staged publishing](https://docs.npmjs.com/staged-publishing/)
 
-Recipients can install the GitHub tarball while the registry publication is pending. Use the command in the [README](../README.md) and check the attached manifest digest before installation.
+Recipients can install the GitHub tarball while registry publication is pending. Download the bootstrap attachment named in `release.json`, check it against `npm.sha256`, then run `npm install --global ./<downloaded-bootstrap>.tgz` and `re-desktop setup`.
 
 ## npm credentials
 

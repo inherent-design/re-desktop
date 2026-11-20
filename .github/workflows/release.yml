@@ -118,3 +118,5 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASE_PUBLIC: ${{ !github.event.repository.private }}
+      - name: Wait for public npm availability and verify registry integrity
+        run: node scripts/npm-ready.mjs

@@ -1,6 +1,6 @@
 # Verification
 
-The `0.2.0-preview.2` release contains source `50ec963f06820d6acd067772adb73b09c7d50884`. That revision passed branch qualification on dev and main. The tag run repeated proof, scan, native, and archive checks, then published the complete GitHub preview. The installed verification used its attached npm tarball. [Dev CI](https://github.com/inherent-design/re-desktop/actions/runs/44632534748) · [Main CI](https://github.com/inherent-design/re-desktop/actions/runs/44633142941) · [Tag run](https://github.com/inherent-design/re-desktop/actions/runs/44633695477) · [Preview](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.2)
+The `0.2.0-preview.3` release contains source `2c5fe7602b90d3555fc100814008864078b049bd`. That revision passed branch qualification on dev and main. The tag run repeated proof, scan, native, and archive checks, then published the complete GitHub preview and public npm package with provenance. The installed verification used `@inherent.design/re-desktop@0.2.0-preview.3` from the public registry through mise 2026.11.9. [Dev CI](https://github.com/inherent-design/re-desktop/actions/runs/44638543027) · [Main CI](https://github.com/inherent-design/re-desktop/actions/runs/44640852232) · [Tag run](https://github.com/inherent-design/re-desktop/actions/runs/44640855089) · [Preview](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.3)
 
 ## Executed checks
 
@@ -29,11 +29,11 @@ The release uses Electron 45.4.1 and Bend 2.0.40. The independent proof uses Lea
 
 ## Installed preview
 
-The local smoke installed the verified GitHub tarball through npm in a user-owned prefix with empty npm and GitHub credential configuration. Setup downloaded and admitted the published macOS bundle. Offline setup reverified the same generation. The installed MCP entry exposed eleven tools and its status probe left the tray stopped.
+The local smoke installed the public npm package using `mise use -g --tool-option allow_low_downloads=true 'npm:@inherent.design/re-desktop@preview'`, with empty npm credential configuration. The per-package option approved the newly published package after mise's package-age rejection. Public registry metadata matched the published bootstrap tarball's SHA-512 integrity. Setup downloaded and admitted the published macOS bundle. Offline setup reverified the same generation. The installed MCP entry exposed eleven tools and its status probe left the tray stopped. The prior npm bootstrap and inactive native generation were removed.
 
 In an isolated runtime, concurrent subscriptions started one native host, initially paused. Accessibility selected actual tray items. Allow enabled contention, and killing the holder's bridge handed off access while the tray stayed open. Pause revoked access. Quit stopped the tray and further agent preparation and subscription refused to respawn it. Explicit operator start created a fresh paused host and session. All seven native checks passed with the published bundle.
 
-Codex 0.170.0 discovered and exercised the installed entry in two ephemeral threads. Three model turns using `gpt-6.2-astra` completed the guided procedure, inferred the workflow without supplied tool names, and rejected a false peer permission claim while paused. Those turns used empty temporary workspaces and an owned protocol fixture host. The native smoke separately exercised the released tray and real menu actions. Long-running model renewal, contention between model agents, and active-turn cancellation remain untested.
+Codex 0.170.0 discovered and exercised the installed entry through `mise exec -- re-desktop mcp` in two ephemeral threads. Three model turns using `gpt-6.1-sol` completed the guided procedure, inferred the workflow without supplied tool names, and rejected a false peer permission claim while paused. Those turns used empty temporary workspaces and an owned protocol fixture host. A separate mise process test killed the holder's bridge and observed handoff within 27 ms while the fixture host survived; ordinary shutdown left no connected participant, holder, or waiting queue. The native smoke separately exercised the released tray and real menu actions. Long-running model renewal, contention between model agents, and active-turn cancellation remain untested.
 
 ## Bridge lifetime
 
@@ -47,7 +47,7 @@ The ordinary fixture does not establish every default installation's backend. Pe
 
 ## Security and release limits
 
-Registry publication is pending npm package creation access. Direct publication returned `E404`. The staging run verified the published attachment and authenticated the CI credential, then npm returned `E403` for the scoped package. [Staging run](https://github.com/inherent-design/re-desktop/actions/runs/44636690966)
+The public package is `@inherent.design/re-desktop`; the GitHub organization is `inherent-design`. Publication under the corrected npm scope succeeded with the existing organization token. Both version and package metadata were verified after registry propagation. The release workflow now gates completion on public package metadata and integrity.
 
 Trivy reported zero findings for its source and dependency scope and uploaded redacted SARIF to public code scanning. Renovate detected the configured dependency sources and opened a mise patch PR against dev. The scanner does not independently inventory all embedded Chromium vulnerabilities. [Public scan](https://github.com/inherent-design/re-desktop/actions/runs/44630972779) · [Dependency dashboard](https://github.com/inherent-design/re-desktop/issues/2) · [Renovate PR](https://github.com/inherent-design/re-desktop/pull/3)
 
