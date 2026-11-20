@@ -58,6 +58,7 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     // Materialize all native formats before copying, including rich/custom data.
     // The current async Clipboard API round-trips these through ClipboardItem.
     for (const item of await clipboard.read()) {
+      if (!item.types.length) continue; // An empty native clipboard can have one zero-format item.
       const data = {};
       for (const type of item.types) {
         const value = await item.getType(type);
