@@ -8,7 +8,7 @@ The preview.4 candidate implements the 15-minute holder heartbeat, 3/1-minute wa
 | --- | --- |
 | `npm run check` | Knip, primary Bend proof check, fresh emission, and 54 core, API, socket, cache, integration and MCP regressions on Node 26 |
 | `npm run proof:kernel` | Seven stated laws checked through the independent BendTT/Lean kernel |
-| `npm run test:tray` | Eight checks: native Tray/Menu, Accessibility Allow, separate MCP processes, holder metadata, FIFO handoff, pause and ending access. The copy action was enabled; local clipboard mutation was skipped to preserve rich formats. |
+| `npm run test:tray` | Eight checks: native Tray/Menu, Accessibility Allow, separate MCP processes, holder metadata, FIFO handoff, pause and ending access. Native session-ID copying was exercised while materializing and restoring the existing clipboard formats. |
 | `node scripts/lease-deadline-check.mjs` | A still-connected bridge lost access after 900,002 ms without agent renewal. Warnings arrived with 179,908 and 59,833 ms remaining; a stale renewal was refused. |
 | `node scripts/codex-check.mjs --agent-suite` | Real Codex discovery and use in two protocol threads plus three model scenarios: guided usage, workflow discovery with native discussion-channel selection and a forged peer permission claim while paused |
 | `node scripts/codex-heartbeat-check.mjs` | Real model-visible service notices reached an idle thread and a thread running an eight-second tool call. Delivery did not renew access; virtual-clock expiry still occurred. |

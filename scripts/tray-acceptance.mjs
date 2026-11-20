@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { mcpClient, tool } from './mcp-client.mjs';
 import { iconPng } from '../src/icon.mjs';
-import { clipboard } from 'electron';
+import { clipboard, ClipboardItem } from 'electron';
 
 const execute = promisify(execFile);
 export async function smokeTray({ host, tray, getMenu, actions, app }) {
@@ -54,16 +54,29 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     report.checks.push('Two independent MCP processes update actual native holder metadata and numbered queue');
     const copy = holder.submenu.items.find(i => i.label.startsWith('Copy session ID:'));
     assert.ok(copy.enabled);
-    const textFormats = new Set(['text/plain', 'text/plain;charset=utf-8', 'public.utf8-plain-text', 'public.utf16-external-plain-text', 'NSStringPboardType']);
-    const items = await clipboard.read();
-    if (items.every(item => item.types.every(format => textFormats.has(format)))) {
-      const originalClipboard = await clipboard.readText();
-      try {
-        await copy.click();
-        assert.equal(await clipboard.readText(), one.session_id);
-        report.checks.push('Enabled native session-ID action copies the exact identity to the clipboard');
-      } finally { await clipboard.writeText(originalClipboard); }
-    } else report.checks.push('Session-ID action is enabled; clipboard mutation skipped to preserve existing rich formats');
+    const originalClipboard = [];
+    // Materialize all native formats before copying, including rich/custom data.
+    // The current async Clipboard API round-trips these through ClipboardItem.
+    for (const item of await clipboard.read()) {
+      const data = {};
+      for (const type of item.types) {
+        const value = await item.getType(type);
+        data[type] = value instanceof Blob ? new Blob([await value.arrayBuffer()], { type: value.type }) : value;
+      }
+      originalClipboard.push(new ClipboardItem(data));
+    }
+    try {
+      await copy.click();
+      assert.equal(await clipboard.readText(), one.session_id);
+      report.checks.push('Enabled native session-ID action copies the exact identity to the clipboard');
+      console.log('Native session-ID clipboard copy passed');
+    } finally {
+      // Do not overwrite a new copy made by the person during this short check.
+      if (await clipboard.readText() === one.session_id) {
+        if (originalClipboard.length) await clipboard.write(originalClipboard);
+        else clipboard.clear();
+      }
+    }
     if (process.platform === 'darwin') {
       const { x, y, width, height } = tray.getBounds();
       try {
