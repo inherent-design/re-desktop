@@ -23,3 +23,6 @@ def Laws.stale_renew(s, id, epoch, now, rejected):
 
 def Laws.fifo_grant(h, e, now, t, ss):
   {==}
+
+def Laws.heartbeat_renews(b, h, e, u, q, ss, now):
+  {==}

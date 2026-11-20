@@ -45,12 +45,16 @@ export async function startHost({ root, coordinator = new Coordinator(), tickMs 
   const onChange = () => {
     const snapshot = coordinator.snapshot();
     // A ticking deadline is read on demand; native menus change only with meaning.
-    const signature = JSON.stringify({ ...snapshot, lease: snapshot.lease && { token: snapshot.lease.token }, mailboxes: [...coordinator.sessions.values()].map(s => [s.id, s.messages.length, s.messages.at(-1)?.id]) });
+    const signature = JSON.stringify({ ...snapshot, lease: snapshot.lease && { token: snapshot.lease.token, heartbeat_id: snapshot.lease.heartbeat_id }, mailboxes: [...coordinator.sessions.values()].map(s => [s.id, s.messages.length, s.messages.at(-1)?.id]) });
     if (signature === lastChange) return;
     lastChange = signature;
     for (const conn of connections) if (conn.authenticated && conn.agreement && !conn.socket.destroyed) conn.socket.write('{"event":"changed"}\n');
   };
   coordinator.on('change', onChange);
+  const onWarning = ({ connection, warning }) => {
+    if (connection.authenticated && connection.agreement && !connection.socket.destroyed) connection.socket.write(JSON.stringify({ event: 'heartbeat-warning', warning }) + '\n');
+  };
+  coordinator.on('heartbeat-warning', onWarning);
   const server = net.createServer(socket => {
     const connection = { socket, authenticated: false };
     connections.add(connection);
@@ -83,7 +87,7 @@ export async function startHost({ root, coordinator = new Coordinator(), tickMs 
             result = agreement;
           } else {
             if (!connection.agreement) throw apiError('API_NEGOTIATION_REQUIRED', 'Negotiate a common IPC API with hello before reading or changing desktop state. Upgrade the bridge if it cannot negotiate.');
-            result = coordinator.call(connection, request.method, request.args);
+            result = request.method === 'cleanup' ? coordinator.cleanup(request.args ?? {}) : coordinator.call(connection, request.method, request.args);
           }
           socket.write(JSON.stringify({ id: request.id, result }) + '\n');
         } catch (error) {
@@ -104,6 +108,7 @@ export async function startHost({ root, coordinator = new Coordinator(), tickMs 
     async close() {
       clearInterval(timer);
       coordinator.off('change', onChange);
+      coordinator.off('heartbeat-warning', onWarning);
       for (const connection of connections) connection.socket.destroy();
       await new Promise(resolve => server.close(resolve));
     }

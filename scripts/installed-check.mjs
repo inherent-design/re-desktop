@@ -49,7 +49,7 @@ try {
   pid = await readPid();
   assert.ok(Number.isSafeInteger(pid) && pid > 0);
   const ready = (await tool(a.client, 'desktop_runtime_status')).data;
-  assert.equal(ready.agreement.shared_api, 1);
+  assert.equal(ready.agreement.shared_api, 2);
   assert.equal(ready.agreement.host_version, version);
   report.source = ready.source;
   report.checks.push('Concurrent first subscriptions converged on one authenticated native host, initially paused');

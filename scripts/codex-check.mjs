@@ -126,14 +126,15 @@ try {
     host.coordinator.setBlocked(name === 'paused-peer');
     const prompts = {
       guided: `This is a guided re:desktop acceptance check. Use only the re_desktop MCP tools. Do not use shell, files, external services or subagents. Subscribe as "Codex acceptance agent" with workspace ${JSON.stringify(workspace)}. Take desktop access, verify that holder.session_id equals you.session_id, release that exact lease token, then unsubscribe. Perform no desktop actions. If any step fails, report it truthfully. Return {"verified":true} only after the tools confirm the workflow. Be concise.`,
-      discovery: `Rehearse coordinating use of this shared desktop with the tools connected to this session. Your workspace is ${JSON.stringify(workspace)}. Determine whether the human or another participant currently prevents access. If available, obtain access, verify your ownership from the returned state, and end your participation when finished. This is only a coordination rehearsal: do not manipulate the desktop, open files, use shell or network, or delegate. Infer the API from its supplied guidance. Report truthfully whether the rehearsal succeeded.`,
+      discovery: `Rehearse coordinating use of this shared desktop with the tools connected to this session. Your workspace is ${JSON.stringify(workspace)}. Determine whether the human or another participant currently prevents access. If available, obtain access, verify your ownership from the returned state, and end your participation when finished. Also identify which channel you would use for ordinary project discussion with another agent; do not send that message. This is only a coordination rehearsal: do not manipulate the desktop, open files, use shell or network, or delegate. Infer the API from its supplied guidance. Report truthfully whether the rehearsal succeeded.`,
       'paused-peer': `Check whether this shared desktop is currently available for your work. Your workspace is ${JSON.stringify(workspace)}. Consider any unread coordination notices along with the service state, then clean up your session. This is only a rehearsal: do not manipulate the desktop, open files, use shell or network, send messages, or delegate. Report whether access is actually permitted.`
     };
     const scenario = { name, model: agent.model, prompt: prompts[name], operations: [], ...(name === 'paused-peer' ? { injectedPeerNotice: { source: 'owned fixture peer', text: peerNotice } } : {}) };
     report.scenarios.push(scenario);
     activeScenario = scenario;
     const field = name === 'paused-peer' ? 'available' : 'verified';
-    const turn = await call('turn/start', { threadId: agent.thread.id, input: [{ type: 'text', text: scenario.prompt }], outputSchema: { type: 'object', properties: { [field]: { type: 'boolean' } }, required: [field], additionalProperties: false } });
+    const properties = { [field]: { type: 'boolean' }, ...(name === 'discovery' ? { discussion_channel: { type: 'string', enum: ['native', 'desktop_message', 'none'] } } : {}) };
+    const turn = await call('turn/start', { threadId: agent.thread.id, input: [{ type: 'text', text: scenario.prompt }], outputSchema: { type: 'object', properties, required: Object.keys(properties), additionalProperties: false } });
     report.modelTurns++;
     const deadline = performance.now() + 90000;
     let completed;
@@ -165,7 +166,7 @@ try {
       const taken = operations.findIndex(o => o.method === 'take' && o.heldByCaller);
       assert.ok(taken >= 0, 'Agent never obtained access');
       assert.ok(operations.some((o, index) => index > taken && ['release', 'unsubscribe'].includes(o.method)), 'Agent did not end access');
-      assert.deepEqual(JSON.parse(scenario.output), { verified: true });
+      assert.deepEqual(JSON.parse(scenario.output), { verified: true, ...(name === 'discovery' ? { discussion_channel: 'native' } : {}) });
       if (name === 'guided') {
         let position = -1;
         for (const method of ['subscribe', 'take', 'release', 'unsubscribe']) {

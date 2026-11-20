@@ -14,6 +14,7 @@ test('runtime probes never launch; preparation respects Quit and reuses compatib
   await mkdir(join(program, 'bridge/src'), { recursive: true });
   await mkdir(runtime);
   for (const file of ['peer.mjs', 'runtime.mjs', 'api.mjs']) await cp(`src/${file}`, join(program, 'bridge/src', file));
+  await cp('bootstrap/lib/profile.mjs', join(program, 'bridge/bootstrap/lib/profile.mjs'), { recursive: true });
   for (const file of ['package.json', 'api.json']) await cp(file, join(program, 'bridge', file));
   const manager = await runtimeManager({ program, manifest: { version: '8.0.0', source: 'b'.repeat(40), api }, asset: { host: 'intentionally-absent', platform: process.platform, arch: process.arch, signing: 'test' } }, { root: runtime });
   assert.equal((await manager.status()).host_running, false);

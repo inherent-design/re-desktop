@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { mcpClient, tool } from './mcp-client.mjs';
 import { iconPng } from '../src/icon.mjs';
+import { clipboard } from 'electron';
 
 const execute = promisify(execFile);
 export async function smokeTray({ host, tray, getMenu, actions, app }) {
@@ -51,6 +52,18 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     assert.ok(holder.submenu.items.some(i => i.label.includes(one.session_id)));
     assert.ok(holder.submenu.items.some(i => i.label.includes(process.cwd())));
     report.checks.push('Two independent MCP processes update actual native holder metadata and numbered queue');
+    const copy = holder.submenu.items.find(i => i.label.startsWith('Copy session ID:'));
+    assert.ok(copy.enabled);
+    const textFormats = new Set(['text/plain', 'text/plain;charset=utf-8', 'public.utf8-plain-text', 'public.utf16-external-plain-text', 'NSStringPboardType']);
+    const items = await clipboard.read();
+    if (items.every(item => item.types.every(format => textFormats.has(format)))) {
+      const originalClipboard = await clipboard.readText();
+      try {
+        await copy.click();
+        assert.equal(await clipboard.readText(), one.session_id);
+        report.checks.push('Enabled native session-ID action copies the exact identity to the clipboard');
+      } finally { await clipboard.writeText(originalClipboard); }
+    } else report.checks.push('Session-ID action is enabled; clipboard mutation skipped to preserve existing rich formats');
     if (process.platform === 'darwin') {
       const { x, y, width, height } = tray.getBounds();
       try {

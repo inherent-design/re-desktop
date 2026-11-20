@@ -49,6 +49,7 @@ export class Peer extends EventEmitter {
           let message;
           try { message = JSON.parse(frame); } catch { socket.destroy(); return; }
           if (message.event === 'changed') { this.emit('change'); continue; }
+          if (message.event === 'heartbeat-warning') { this.emit('heartbeat-warning', message.warning); continue; }
           const pending = this.pending.get(message.id);
           if (!pending) continue;
           this.pending.delete(message.id); clearTimeout(pending.timer);
@@ -83,18 +84,22 @@ export class Peer extends EventEmitter {
         try {
           const result = await this.rpc('subscribe', this.identity);
           this.identity.resume_token = result.resume_token;
+          this.registration = result;
+          this.emit('identity', result);
         } catch (error) {
           if (error.code !== 'SESSION_EXPIRED') throw error;
           const { resume_token, ...fresh } = this.identity;
           const result = await this.rpc('subscribe', fresh);
           this.identity.resume_token = result.resume_token;
+          this.registration = result;
+          this.emit('identity', result);
         }
       }
       this.lastPresence = Date.now();
     } catch (error) {
       this.socket?.destroy();
       if (error.code?.startsWith('API_') || ['SESSION_CONNECTED', 'OUTCOME_UNKNOWN'].includes(error.code)) throw error;
-      throw Object.assign(new Error('re:desktop is unavailable. Start the tray app, then retry. No access has been assumed.'), { code: 'HOST_UNAVAILABLE', cause: error });
+      throw Object.assign(new Error('re:desktop is unavailable. With the installed bootstrap, call desktop_runtime_prepare or desktop_subscribe to start it under the saved policy. Source mode needs the person to start the tray. No access has been assumed.'), { code: 'HOST_UNAVAILABLE', cause: error });
     }
   }
   rpc(method, args = {}) {
@@ -116,8 +121,8 @@ export class Peer extends EventEmitter {
   async call(method, args = {}) {
     await this.open();
     const result = await this.rpc(method, args);
-    if (method === 'subscribe') this.identity = { name: args.name, workspace: args.workspace, resume_token: result.resume_token };
-    if (method === 'unsubscribe') this.identity = null;
+    if (method === 'subscribe') { this.identity = { name: args.name, workspace: args.workspace, resume_token: result.resume_token }; this.registration = result; }
+    if (method === 'unsubscribe') { this.identity = null; this.registration = null; }
     if (method !== 'status') this.lastPresence = Date.now();
     return result;
   }

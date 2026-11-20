@@ -12,7 +12,7 @@ test('Bend JavaScript ABI preserves booleans, Nat, records, enum and lists', () 
   const next = A.take(s, 1, true, 0);
   assert.equal(next.holder, 1);
   assert.equal(next.epoch, 1);
-  assert.equal(next.until, 30000);
+  assert.equal(next.until, 900000);
   assert.deepEqual(list(next.queue), []);
   assert.equal(A.light(next).$, 'InUse');
   assert.equal(A.light(A.block(next)).$, 'Blocked');
@@ -27,11 +27,11 @@ test('FIFO ordering, queue deduplication, no-wait behavior and no renewal by tak
   s = A.take(s, 2, true, 7);
   s = A.take(s, 1, true, 10000);
   assert.deepEqual(list(s.queue), [2, 3]);
-  assert.equal(s.until, 30000);
+  assert.equal(s.until, 900000);
   s = A.advance(A.release(s, 1, s.epoch), 10000);
   assert.equal(s.holder, 2);
   assert.deepEqual(list(s.queue), [3]);
-  assert.equal(s.until, 40000);
+  assert.equal(s.until, 910000);
 });
 
 test('pause revokes a holder, retains waiters and prevents every subsequent grant', () => {
@@ -57,16 +57,16 @@ test('stale epochs and non-holder identity cannot release or renew later access'
   assert.deepEqual(A.renew(s, 1, oldEpoch, 200), before);
   assert.deepEqual(A.release(s, 1, s.epoch), before);
   assert.deepEqual(A.release(s, 2, oldEpoch), before);
-  assert.equal(A.renew(s, 2, s.epoch, 1000).until, 31000);
+  assert.equal(A.renew(s, 2, s.epoch, 1000).until, 901000);
 });
 
 test('transport presence does not extend an access lease; exact timeout grants next waiter', () => {
   let s = A.take(setup(), 1, true, 0);
   s = A.take(s, 2, true, 0);
-  s = connected(connected(s, 1, 20000), 2, 20000);
-  s = A.advance(s, 29999);
+  for (let now = 10000; now < 900000; now += 10000) s = A.advance(connected(connected(s, 1, now), 2, now), now);
+  s = A.advance(s, 899999);
   assert.equal(s.holder, 1);
-  s = A.advance(s, 30000);
+  s = A.advance(s, 900000);
   assert.equal(s.holder, 2);
   assert.equal(s.epoch, 2);
 });

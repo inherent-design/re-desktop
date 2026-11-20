@@ -16,6 +16,7 @@ await mkdir(stage, { recursive: true });
 for (const path of ['src', 'core', 'build/access.mjs', 'build/provenance.json', 'api.json', 'LICENSE', 'licenses', 'THIRD_PARTY_NOTICES.md', 'package.json', 'package-lock.json']) {
   await cp(path, join(stage, path), { recursive: true });
 }
+for (const file of ['profile.mjs', 'integration.mjs']) await cp(join('bootstrap/lib', file), join(stage, 'bootstrap/lib', file), { recursive: true });
 const npmCli = process.env.npm_execpath;
 if (!npmCli || !isAbsolute(npmCli)) throw new Error('Use npm run package so the npm CLI path is explicit');
 execFileSync(process.execPath, [npmCli, 'ci', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], { cwd: stage, stdio: 'inherit' });
@@ -32,7 +33,8 @@ const paths = await packager({
 });
 const folder = paths[0], bridge = join(folder, 'bridge');
 await mkdir(join(bridge, 'src'), { recursive: true });
-for (const file of ['mcp.mjs', 'peer.mjs', 'runtime.mjs', 'api.mjs']) await cp(join(stage, 'src', file), join(bridge, 'src', file));
+for (const file of ['mcp.mjs', 'peer.mjs', 'runtime.mjs', 'api.mjs', 'heartbeat.mjs', 'client.mjs']) await cp(join(stage, 'src', file), join(bridge, 'src', file));
+for (const file of ['profile.mjs', 'integration.mjs']) await cp(join('bootstrap/lib', file), join(bridge, 'bootstrap/lib', file), { recursive: true });
 for (const file of ['node_modules', 'api.json', 'LICENSE', 'licenses', 'THIRD_PARTY_NOTICES.md']) await cp(join(stage, file), join(bridge, file), { recursive: true, verbatimSymlinks: true });
 await writeFile(join(bridge, 'package.json'), JSON.stringify({ name: 're-desktop-bridge', version: pkg.version, type: 'module', license: pkg.license, dependencies: pkg.dependencies }, null, 2) + '\n');
 await writeFile(join(folder, 'release.json'), JSON.stringify({ version: pkg.version, source, platform: process.platform, arch: process.arch, api, core: JSON.parse(await readFile('build/provenance.json')) }, null, 2) + '\n');

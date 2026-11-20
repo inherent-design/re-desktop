@@ -6,7 +6,7 @@
 
 Make substantial changes on dev. Update the host and bootstrap product versions together in both `package.json` files and lockfiles. Use a new `0.x.y-preview.n` identity; never change bytes under a published version. Update independent agent/host/shared API declarations in [`api.json`](../api.json) only when those contracts change.
 
-Run `npm run check`, `npm run proof:kernel`, and the affected native/package checks. Review the diff, commit, and push only with authorization. Require the complete Build and qualify workflow on dev, then promote the qualified source to main and observe its CI. The release preflight requires a successful dev/main branch run for the exact tagged source. If a documentation-only change skipped automatic CI, dispatch that workflow explicitly before tagging it.
+Run `npm run check` (including Knip), `npm run proof:kernel`, and the affected native/package checks. Heartbeat or client integration changes also need the real warning and lifecycle checks described in [development](development.md), with model inference explicitly opt-in. Review the diff, commit, and push only with authorization. Require the complete Build and qualify workflow on dev, then promote the qualified source to main and observe its CI. Check prior run durations and poll long jobs every 5–15 minutes; the previous preview's roughly 3–4 minute native pipeline supports a five-minute interval. The release preflight requires a successful dev/main branch run for the exact tagged source. If a documentation-only change skipped automatic CI, dispatch that workflow explicitly before tagging it.
 
 ## Publish
 
@@ -44,5 +44,7 @@ Public-source publication requests npm provenance using the workflow's OIDC perm
 ## Recipient verification
 
 Install the exact version from the npm registry or the verified GitHub tarball into an owned prefix. Run `re-desktop setup` and use its generated absolute MCP entry. Verify a cold download, warm/offline reuse, discovery, compatibility negotiation, and actual native lifecycle in an isolated profile. On macOS, `scripts/installed-check.mjs --cli /absolute/installed/bin/re-desktop.mjs` exercises native Allow, Pause, Quit refusal, operator restart, bridge teardown, and handoff. `scripts/codex-check.mjs --agent-suite --entry /absolute/installed/bin/re-desktop.mjs --entry-arg mcp` tests the installed entry through real Codex threads and model scenarios. Both tools use temporary profiles and their own client configuration.
+
+For Codex integration, run `codex-install` through the installed CLI, inspect hook trust, and reconnect the MCP client. An authorized daemon restart should preserve the managed daemon version; do not replace it with an older PATH CLI. Save a durable checkpoint before restart because the current client connection may end. Afterward verify actual tool calls, common API agreement, heartbeat fields, startup, notices and cleanup; a listed tool count or Codex's `unknown` runtime label alone is insufficient.
 
 Record the release source, run URLs, registry integrity, installed entry, commands, and observed limitations. [Verification](verification.md) distinguishes executed coverage from configured gates. Signing/notarization, additional architectures, physical Linux desktop usability, and automatic channels need their own evidence.

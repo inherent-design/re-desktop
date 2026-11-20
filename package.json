@@ -1,6 +1,6 @@
 {
   "name": "re-desktop",
-  "version": "0.2.0-preview.3",
+  "version": "0.2.0-preview.4",
   "description": "A native desktop availability light for people and agents, powered by Bend",
   "homepage": "https://github.com/inherent-design/re-desktop#readme",
   "repository": {
@@ -25,7 +25,8 @@
     "build": "node scripts/build.mjs",
     "check:build": "node scripts/check-build.mjs",
     "test": "node --test",
-    "check": "npm run proof && npm run build && npm test",
+    "check": "npm run knip && npm run proof && npm run build && npm test",
+    "knip": "knip --no-progress",
     "start": "electron .",
     "mcp": "node src/mcp.mjs",
     "package": "node scripts/package.mjs",
@@ -34,11 +35,13 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
+    "ws": "8.23.0",
     "zod": "4.6.7"
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",
     "electron": "45.4.1",
+    "knip": "6.46.1",
     "tar": "7.5.23"
   }
 }

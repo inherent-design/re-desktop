@@ -86,7 +86,7 @@ test('MCP initializes offline and reports host unavailability without assuming a
   assert.equal(status.data.error.code, 'HOST_UNAVAILABLE');
   const runtime = await tool(a.client, 'desktop_runtime_status');
   assert.equal(runtime.data.host_running, false);
-  assert.deepEqual(runtime.data.api.shared.supported, [1]);
+  assert.deepEqual(runtime.data.api.shared.supported, [2]);
   assert.equal(runtime.data.startup, 'manual');
   assert.equal((await tool(a.client, 'desktop_runtime_prepare')).data.error.code, 'HOST_UNAVAILABLE');
 });

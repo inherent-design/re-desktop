@@ -47,14 +47,17 @@ This coordinator is small and ordered. No useful CPU/GPU parallel workload was i
 
 | Command | Exercised boundary |
 | --- | --- |
-| `npm run check` | Bend primary proof check, fresh emission, core invariants, real sockets and actual SDK stdio clients |
-| `npm run proof:kernel` | Six stated laws checked through the separate BendTT kernel |
+| `npm run check` | Knip, Bend primary proof check, fresh emission, core invariants, real sockets and actual SDK stdio clients |
+| `npm run knip` | Unused files, exports and dependencies across the host and independently packaged bootstrap |
+| `npm run proof:kernel` | Seven stated laws checked through the separate BendTT kernel |
 | `npm run test:tray` | Actual Electron Tray/Menu, two independent MCP processes, holder metadata, queue and human controls |
 | `npm run test:codex` | Installed Codex app-server, two ephemeral native threads and actual MCP tool calls; no model turns |
 | `node scripts/codex-check.mjs --agent-turn` | One opt-in guided model turn with an explicit API procedure; host operations verify it |
 | `node scripts/codex-check.mjs --agent-discovery` | One opt-in model chooses the workflow from MCP guidance without user-supplied tool names or API steps |
 | `node scripts/codex-check.mjs --agent-paused-peer` | One opt-in model reads a false peer permission claim, checks human pause and reports actual availability |
 | `node scripts/codex-check.mjs --agent-suite` | All three model scenarios, each in a fresh thread with an empty temporary workspace |
+| `node scripts/codex-heartbeat-check.mjs` | Opt-in real model delivery at idle and during a long tool call, with virtual warning thresholds and expiry |
+| `node scripts/codex-hook-check.mjs` | Account-free owned app-server, exact hook trust, byte proxy and actual SessionEnd cleanup |
 | `node scripts/tui-lifecycle-check.mjs` | Actual empty TUI process ownership and kill behavior, including a separate server |
 | `npm run package` | Native package with checked emitted Bend core and production SDK dependencies |
 | `node scripts/archive.mjs` | Native tar.gz, digest, and identity sidecar in `dist/` |
@@ -70,6 +73,10 @@ The macOS native UI probe compiles `scripts/macos-menu.swift` and uses Accessibi
 Linux needs Chromium's sandbox helper correctly installed. CI downloads the pinned Electron binary, then sets its `chrome-sandbox` owner to root and mode to 4755 inside the disposable runner. It does not disable sandboxing. A tar distribution's installer/operator must set the same ownership and mode on the extracted helper before GUI startup; the bundled MCP Node mode does not launch Chromium. This manual Linux installation step remains a packaging polish item.
 
 Generated verification captures belong in ignored `artifacts/`. Maintained scope and limitations belong in [verification](verification.md).
+
+Knip is pinned in the development lockfile and runs in the ordinary CI gate through `npm run check`. `knip.jsonc` declares optional command-line fixtures and the separate bootstrap package, excludes generated build/cache trees from project analysis, and identifies the operator-installed `codex` binary. Fix findings or explain a precise entry boundary; do not ignore whole source trees to obtain a pass. [Knip configuration](https://knip.dev/overview/configuration) describes entry and project ownership.
+
+The owner wants to experiment with Vite/Vitest, [TypeScript 7.1 beta](https://devblogs.microsoft.com/typescript/announcing-typescript-7-1-beta/), and other build, configuration, release and development tools in future work. This release adds Knip while retaining the Node test runner, native Electron packaging and Bend compiler boundary. Evaluate future tools against a concrete improvement and execute the affected platform/package checks before adopting them; no framework or TypeScript migration is part of this change.
 
 ## Distribution
 

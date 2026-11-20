@@ -1,0 +1,23 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    ".": {
+      "entry": [
+        "test/**/*.test.mjs",
+        "scripts/codex-config.mjs",
+        "scripts/codex-heartbeat-check.mjs",
+        "scripts/codex-hook-check.mjs",
+        "scripts/fixtures/lifecycle-bridge.mjs",
+        "scripts/installed-check.mjs",
+        "scripts/lease-deadline-check.mjs",
+        "scripts/tui-lifecycle-check.mjs"
+      ],
+      "project": ["src/**/*.mjs", "scripts/**/*.mjs", "test/**/*.mjs"],
+      // An operator-installed CLI, used only by optional local integration checks.
+      "ignoreBinaries": ["codex"]
+    },
+    "bootstrap": {
+      "project": ["bin/**/*.mjs", "lib/**/*.mjs"]
+    }
+  }
+}

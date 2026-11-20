@@ -13,6 +13,8 @@ try {
   const two = (await tool(b.client, 'desktop_subscribe', { name: 'Waiting agent', workspace: process.cwd() })).data;
   host.coordinator.setBlocked(false);
   const started = performance.now();
+  const warnings = [];
+  host.coordinator.on('heartbeat-warning', ({ warning }) => warnings.push({ remainingMs: warning.remaining_ms, thresholdMs: warning.threshold_ms }));
   const initial = (await tool(a.client, 'desktop_take')).data;
   await tool(b.client, 'desktop_take');
   const elapsed = await new Promise((resolve, reject) => {
@@ -21,16 +23,17 @@ try {
       clearTimeout(timer); host.coordinator.off('change', changed);
       resolve(performance.now() - started);
     };
-    const timer = setTimeout(() => { host.coordinator.off('change', changed); reject(new Error('Real-time lease did not hand off within 33 seconds')); }, 33000);
+    const timer = setTimeout(() => { host.coordinator.off('change', changed); reject(new Error('Real-time heartbeat did not hand off within its configured deadline')); }, initial.heartbeat_timeout_ms + 5000);
     host.coordinator.on('change', changed);
   });
   const observed = (await tool(b.client, 'desktop_status')).data;
   assert.equal(observed.holder.session_id, two.session_id);
   assert.equal(observed.sessions.find(s => s.session_id === one.session_id).connected, true);
-  assert.ok(elapsed >= 29900 && elapsed < 33000);
+  assert.ok(elapsed >= initial.heartbeat_timeout_ms - 100 && elapsed < initial.heartbeat_timeout_ms + 5000);
   const stale = await tool(a.client, 'desktop_heartbeat', { lease_token: initial.lease.token });
   assert.equal(stale.data.error.code, 'STALE_LEASE');
-  const report = { observedAt: new Date().toISOString(), node: process.version, platform: process.platform, configuredMs: initial.lease_timeout_ms, handoffMs: Math.round(elapsed), formerBridgeStillConnected: true, staleRenewalRejected: true, agentRenewalsBeforeExpiry: 0 };
+  assert.deepEqual(warnings.map(w => w.thresholdMs), [180000, 60000]);
+  const report = { warnings, observedAt: new Date().toISOString(), node: process.version, platform: process.platform, configuredMs: initial.lease_timeout_ms, handoffMs: Math.round(elapsed), formerBridgeStillConnected: true, staleRenewalRejected: true, agentRenewalsBeforeExpiry: 0 };
   await mkdir('artifacts', { recursive: true });
   await writeFile('artifacts/lease-deadline.json', JSON.stringify(report, null, 2) + '\n');
   console.log(JSON.stringify(report));

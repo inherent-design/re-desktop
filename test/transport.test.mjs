@@ -92,9 +92,9 @@ test('a still-connected bridge without agent renewal loses access at the exact d
   host.coordinator.setBlocked(false);
   const old = await a.call('take');
   await b.call('take');
-  now = 20000; await a.call('presence'); await b.call('presence');
-  now = 29999; assert.equal((await a.call('status')).holder.name, 'Idle bridge');
-  now = 30000;
+  for (now = 10000; now < 900000; now += 10000) { await a.call('presence'); await b.call('presence'); }
+  now = 899999; assert.equal((await a.call('status')).holder.name, 'Idle bridge');
+  now = 900000;
   const next = await b.call('status');
   assert.equal(next.holder.session_id, identity.session_id);
   assert.equal(next.sessions.find(s => s.name === 'Idle bridge').connected, true);

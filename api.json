@@ -1,8 +1,18 @@
 {
-  "agent": "1.1.0",
-  "host": "1.0.0",
+  "agent": "1.2.0",
+  "host": "1.1.0",
   "shared": {
-    "supported": [1],
-    "capabilities": ["status", "sessions", "leases", "queue", "messages"]
+    "supported": [
+      2
+    ],
+    "capabilities": [
+      "status",
+      "sessions",
+      "leases",
+      "queue",
+      "messages",
+      "heartbeat-warnings",
+      "session-cleanup"
+    ]
   }
 }

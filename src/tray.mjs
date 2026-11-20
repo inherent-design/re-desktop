@@ -1,4 +1,4 @@
-import { app, Tray, Menu, nativeImage, dialog, powerMonitor } from 'electron';
+import { app, Tray, Menu, nativeImage, dialog, powerMonitor, clipboard } from 'electron';
 import { startHost } from './host.mjs';
 import { menuTemplate } from './menu.mjs';
 import { iconPng } from './icon.mjs';
@@ -31,15 +31,16 @@ else app.whenReady().then(async () => {
       if (process.env.RE_DESKTOP_RUNTIME && process.env.RE_DESKTOP_TEST_TRACE) console.error(JSON.stringify({ action: name, blocked: host.coordinator.state.blocked }));
     };
     const actions = {
+      copySessionId: id => clipboard.writeText(id).catch(() => dialog.showErrorBox('Could not copy session ID', 'The system clipboard refused the copy. Try again.')),
       pause: humanAction('pause', () => host.coordinator.setBlocked(true)),
       allow: humanAction('allow', () => host.coordinator.setBlocked(false)),
       endAccess: () => host.coordinator.endAccess(),
-      about: () => dialog.showMessageBox({ type: 'info', title: 're:desktop', message: 'A shared desktop availability light', detail: `re:desktop ${app.getVersion()}\nBend 2.0.40 · MCP\n\nGreen: available\nSolid red: paused by you\nRed ring, white center: a session has access\n\nAccess expires after 30 seconds without explicit renewal. People retain ordinary desktop control.` }),
+      about: () => dialog.showMessageBox({ type: 'info', title: 're:desktop', message: 'A shared desktop availability light', detail: `re:desktop ${app.getVersion()}\nBend 2.0.40 · MCP\n\nGreen: available\nSolid red: paused by you\nRed ring, white center: a session has access\n\nAgent heartbeat expires after 15 minutes without renewal. Fresh heartbeats allow longer work; release promptly when finished. People retain ordinary desktop control.` }),
       quit: () => { humanQuit = true; app.quit(); }
     };
     const render = () => {
       const snapshot = host.coordinator.snapshot();
-      const next = JSON.stringify({ ...snapshot, lease: snapshot.lease && { token: snapshot.lease.token } });
+      const next = JSON.stringify({ ...snapshot, lease: snapshot.lease && { token: snapshot.lease.token, heartbeat_id: snapshot.lease.heartbeat_id, minutes: Math.ceil(snapshot.lease.remaining_ms / 60000) } });
       if (signature === next) return;
       signature = next;
       const image = nativeImage.createFromBuffer(iconPng(snapshot.availability), { scaleFactor: 2 });

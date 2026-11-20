@@ -11,6 +11,10 @@ type Light is Data:
   Blocked{}
   InUse{}
 
+# Agent heartbeat window, independent of transport presence and reconnect grace.
+def heartbeat_timeout() -> Nat:
+  900000n
+
 def initial(blocked: Bool) -> State:
   State{blocked, 0n, 0n, 0n, [], []}
 
@@ -93,7 +97,7 @@ def grant(ok: Bool, +h: Nat, e: Nat, now: Nat, t: +List<Nat>, ss: +List<Session>
     case False{}:
       State{False{}, 0n, e, 0n, h <> t, ss}
     case True{}:
-      State{False{}, h, 1n+e, Nat.add(now, 30000n), t, ss}
+      State{False{}, h, 1n+e, Nat.add(now, heartbeat_timeout()), t, ss}
 
 def schedule(s: State, now: Nat) -> State:
   match s:
@@ -165,7 +169,7 @@ def renew.checked(ok: Bool, s: State, now: Nat) -> State:
       s
     case True{}:
       State{b, h, e, u, q, ss} = s
-      State{b, h, e, Nat.add(now, 30000n), q, ss}
+      State{b, h, e, Nat.add(now, heartbeat_timeout()), q, ss}
 
 def renew(+s: State, id: Nat, epoch: Nat, now: Nat) -> State:
   renew.checked(matches(s, id, epoch), s, now)

@@ -10,13 +10,14 @@ import { createGunzip } from 'node:zlib';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import * as tar from 'tar';
+import bootstrap from '../package.json' with { type: 'json' };
 
 const execute = promisify(execFile);
-export const repository = 'inherent-design/re-desktop';
+const repository = 'inherent-design/re-desktop';
 export const versionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
-export const limits = { manifest: 1048576, archive: 512 * 1048576, unpacked: 2 * 1024 ** 3, files: 20000 };
+const limits = { manifest: 1048576, archive: 512 * 1048576, unpacked: 2 * 1024 ** 3, files: 20000 };
 export function failure(code, message) { return Object.assign(new Error(message), { code }); }
-export function storePath() {
+function storePath() {
   return process.env.RE_DESKTOP_STORE ?? join(process.platform === 'darwin' ? join(homedir(), 'Library/Application Support') : process.platform === 'win32' ? process.env.LOCALAPPDATA ?? join(homedir(), 'AppData/Local') : process.env.XDG_DATA_HOME ?? join(homedir(), '.local/share'), 're-desktop', 'programs');
 }
 export async function ownedDirectory(path) {
@@ -118,7 +119,7 @@ async function inspectArchive(path) {
 export function validateManifest(manifest, version, target) {
   if (!versionPattern.test(version) || manifest?.format !== 1 || manifest.version !== version || manifest.repository !== repository || !/^[a-f0-9]{40}$/.test(manifest.source) || !Array.isArray(manifest.targets) || manifest.targets.length > 12) throw failure('RELEASE_INVALID', 'Release identity is invalid.');
   const api = manifest.api;
-  if (!api || !versionPattern.test(api.agent) || !versionPattern.test(api.host) || !Array.isArray(api.shared?.supported) || api.shared.supported.length > 16 || api.shared.supported.some(v => !Number.isSafeInteger(v) || v < 1) || !api.shared.supported.includes(1) || !Array.isArray(api.shared.capabilities) || api.shared.capabilities.length > 32 || api.shared.capabilities.some(c => typeof c !== 'string' || !/^[a-z0-9.-]{1,64}$/.test(c))) throw failure('API_UPGRADE_REQUIRED', 'This bootstrap requires a release supporting shared IPC API 1. Upgrade the bootstrap for another API.');
+  if (!api || !versionPattern.test(api.agent) || !versionPattern.test(api.host) || !Array.isArray(api.shared?.supported) || api.shared.supported.length > 16 || api.shared.supported.some(v => !Number.isSafeInteger(v) || v < 1) || !bootstrap.reDesktop.sharedApis.some(v => api.shared.supported.includes(v)) || !Array.isArray(api.shared.capabilities) || api.shared.capabilities.length > 32 || api.shared.capabilities.some(c => typeof c !== 'string' || !/^[a-z0-9.-]{1,64}$/.test(c))) throw failure('API_UPGRADE_REQUIRED', 'This bootstrap requires a compatible shared IPC API. Upgrade the bootstrap or select a compatible native release.');
   const selected = manifest.targets.filter(item => `${item.platform}-${item.arch}` === target);
   if (selected.length !== 1) throw failure('TARGET_UNSUPPORTED', `Release ${version} has no unique qualified target ${target}.`);
   const asset = selected[0];

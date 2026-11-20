@@ -52,7 +52,7 @@ test('missing, unsupported and incompatible releases fail without committing a g
   const f = await fixture(t);
   await assert.rejects(new ProgramStore({ root: join(f.root, 'offline') }).prepare(f.version, { offline: true }), { code: 'CACHE_MISS' });
   assert.throws(() => validateManifest(f.manifest, f.version, 'unsupported-target'), { code: 'TARGET_UNSUPPORTED' });
-  assert.throws(() => validateManifest({ ...f.manifest, api: { ...api, shared: { supported: [2] } } }, f.version, f.target), { code: 'API_UPGRADE_REQUIRED' });
+  assert.throws(() => validateManifest({ ...f.manifest, api: { ...api, shared: { supported: [99] } } }, f.version, f.target), { code: 'API_UPGRADE_REQUIRED' });
   const bad = new ProgramStore({ root: join(f.root, 'bad'), acquire: async args => { await f.acquire(args); return { ...f.manifest, targets: [{ ...f.asset, sha256: '0'.repeat(64) }] }; } });
   await assert.rejects(bad.prepare(f.version), { code: 'DIGEST_MISMATCH' });
   assert.deepEqual(await readdir(bad.root), []);

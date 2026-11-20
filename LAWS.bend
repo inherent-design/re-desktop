@@ -43,4 +43,15 @@ law fifo_grant:
   for now: Nat
   for t: +List<Nat>
   for ss: +List<Access.Session>
-  {Access.grant(True{}, h, e, now, t, ss) == Access.State{False{}, h, 1n+e, Nat.add(now, 30000n), t, ss} : Access.State}
+  {Access.grant(True{}, h, e, now, t, ss) == Access.State{False{}, h, 1n+e, Nat.add(now, Access.heartbeat_timeout()), t, ss} : Access.State}
+
+# An accepted renewal starts a fresh heartbeat window, with no maximum total hold.
+law heartbeat_renews:
+  for b: Bool
+  for h: Nat
+  for e: Nat
+  for u: Nat
+  for q: +List<Nat>
+  for ss: +List<Access.Session>
+  for now: Nat
+  {Access.renew.checked(True{}, Access.State{b, h, e, u, q, ss}, now) == Access.State{b, h, e, Nat.add(now, Access.heartbeat_timeout()), q, ss} : Access.State}

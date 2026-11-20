@@ -1,15 +1,41 @@
 {
   "name": "@inherent.design/re-desktop",
-  "version": "0.2.0-preview.3",
+  "version": "0.2.0-preview.4",
   "description": "Verified native re:desktop releases and a per-session MCP entry",
   "type": "module",
   "license": "MIT",
-  "engines": { "node": ">=24" },
-  "bin": { "re-desktop": "bin/re-desktop.mjs" },
-  "files": ["bin", "lib", "LICENSE", "README.md"],
-  "publishConfig": { "access": "public", "tag": "preview" },
-  "repository": { "type": "git", "url": "git+https://github.com/inherent-design/re-desktop.git", "directory": "bootstrap" },
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "re-desktop": "bin/re-desktop.mjs"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "tag": "preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inherent-design/re-desktop.git",
+    "directory": "bootstrap"
+  },
   "homepage": "https://github.com/inherent-design/re-desktop#readme",
-  "bugs": { "url": "https://github.com/inherent-design/re-desktop/issues" },
-  "dependencies": { "tar": "7.5.23" }
+  "bugs": {
+    "url": "https://github.com/inherent-design/re-desktop/issues"
+  },
+  "dependencies": {
+    "tar": "7.5.23",
+    "ws": "8.23.0"
+  },
+  "reDesktop": {
+    "sharedApis": [
+      2
+    ]
+  }
 }
