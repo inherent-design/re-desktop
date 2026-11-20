@@ -38,13 +38,13 @@ An additional live contention check took and renewed approximately 900,000 ms of
 
 ## Bridge lifetime
 
-| Codex 0.170.0 topology | Observed owner | After killing only the TUI |
+| Codex 0.171.0 topology | Observed owner | After killing only the TUI |
 | --- | --- | --- |
-| Ordinary local fixture | TUI | Disconnect within the next approximately 50 ms poll |
-| `--no-daemon` | TUI | Disconnect within the next approximately 52 ms poll |
-| `--remote` to a test-owned app-server | App-server | Server and MCP connection survived the full 3,063 ms observation |
+| Ordinary local fixture | TUI | Disconnect within the next approximately 51 ms poll |
+| `--no-daemon` | TUI | Disconnect within the next approximately 50 ms poll |
+| `--remote` to a test-owned app-server | App-server | Server and MCP connection survived the full 3,061 ms observation |
 
-These earlier fixtures establish why transport loss alone cannot replace the heartbeat. They do not establish every default backend or active-turn cancellation behavior. [Desktop behavior](product.md#bridge-lifetime) owns the lifecycle contract.
+These current fixtures establish why transport loss alone cannot replace the heartbeat. They do not establish every default backend or active-turn cancellation behavior. [Desktop behavior](product.md#bridge-lifetime) owns the lifecycle contract.
 
 ## Security and release limits
 
