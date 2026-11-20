@@ -141,9 +141,10 @@ const shellQuote = value => {
   }
   return `'${value.replaceAll("'", "'\\''")}'`;
 };
-export async function installCodex({ command, home = process.env.CODEX_HOME ?? join(homedir(), '.codex'), socket, launcher, args, cleanupLauncher = launcher, cleanupArgs = args?.slice(0, -1), root, executeCommand = execute } = {}) {
+export async function installCodex({ command, home = process.env.CODEX_HOME ?? join(homedir(), '.codex'), socket, launcher, args, cleanupLauncher = launcher, cleanupArgs = args?.slice(0, -1), root, store = process.env.RE_DESKTOP_STORE, executeCommand = execute } = {}) {
   if (!isAbsolute(command ?? '') || !isAbsolute(home) || !isAbsolute(launcher ?? '') || !isAbsolute(cleanupLauncher ?? '') || (socket && !isAbsolute(socket))) throw new Error('Codex, launcher, home and optional socket paths must be absolute');
   if (!Array.isArray(args) || args.at(-1) !== 'mcp' || !args.every(arg => typeof arg === 'string') || !Array.isArray(cleanupArgs) || !cleanupArgs.every(arg => typeof arg === 'string')) throw new Error('Expected literal MCP and cleanup launcher arguments');
+  if (store !== undefined && !isAbsolute(store)) throw new Error('RE_DESKTOP_STORE must be absolute');
   const paths = runtimePaths(root);
   await privateDirectory(paths.root, true);
   // Codex owns its directory policy; only our capability files require 0700.
@@ -161,7 +162,8 @@ export async function installCodex({ command, home = process.env.CODEX_HOME ?? j
     hooks.hooks[event] = groups.map(group => ({ ...group, hooks: group.hooks.filter(h => h.statusMessage !== 're:desktop session cleanup') })).filter(group => group.hooks.length);
     hooks.hooks[event].push({ hooks: [{ type: 'command', command: cleanup, timeout: 3, statusMessage: 're:desktop session cleanup' }] });
   }
-  await executeCommand(command, ['mcp', 'add', 're_desktop', '--', launcher, ...args], { env: { ...process.env, CODEX_HOME: home }, timeout: 15000, maxBuffer: 65536 });
+  const environment = ['--env', `RE_DESKTOP_RUNTIME=${paths.root}`, ...(store ? ['--env', `RE_DESKTOP_STORE=${store}`] : [])];
+  await executeCommand(command, ['mcp', 'add', 're_desktop', ...environment, '--', launcher, ...args], { env: { ...process.env, CODEX_HOME: home }, timeout: 15000, maxBuffer: 65536 });
   await privateJson(hookPath, hooks);
   const config = { format: 1, command, home, ...(socket ? { socket } : {}) };
   await privateJson(join(paths.root, 'codex.json'), config);

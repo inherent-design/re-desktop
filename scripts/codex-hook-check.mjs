@@ -17,18 +17,21 @@ await mkdir(home, { mode: 0o700 }); await mkdir(workspace);
 await writeFile(join(home, 'config.toml'), '[hooks.state.unrelated]\ntrusted_hash = "preserve-this"\n');
 const socket = join(root, 'server.sock'), host = await startHost({ root: join(root, 'runtime') });
 const config = { command: codex, home, socket };
-await installCodex({ ...config, launcher: process.execPath, args: [resolve('bootstrap/bin/re-desktop.mjs'), 'mcp'], root: host.paths.root, executeCommand: async () => ({ stdout: '' }) });
+await installCodex({ ...config, launcher: process.execPath, args: [resolve('bootstrap/bin/re-desktop.mjs'), 'mcp'], root: host.paths.root });
 const server = spawn(codex, ['-c', 'mcp_servers={}', '-c', 'features.apps=false', 'app-server', '--listen', `unix://${socket}`], { env: { ...process.env, CODEX_HOME: home }, stdio: ['ignore', 'ignore', 'pipe'] });
 server.stderr.resume();
 let client;
 const report = { checks: [], inference: false };
 try {
+  const registration = JSON.parse(execFileSync(codex, ['mcp', 'get', 're_desktop', '--json'], { env: { ...process.env, CODEX_HOME: home }, encoding: 'utf8' }));
+  assert.equal(registration.transport.env?.RE_DESKTOP_RUNTIME, host.paths.root, 'The registered MCP and cleanup hook must use the same explicit runtime profile');
+  report.checks.push('Actual Codex registration persists the same isolated runtime profile used by cleanup');
   for (let n = 0; n < 100; n++) { try { if ((await stat(socket)).isSocket()) break; } catch {} await delay(50); }
   const inventory = await withCodex(config, request => request('hooks/list', { cwds: [workspace] }));
   const selected = inventory.data.flatMap(d => d.hooks).filter(h => h.statusMessage === 're:desktop session cleanup');
   assert.equal(selected.length, 2);
   assert.deepEqual(selected.map(h => h.eventName).sort(), ['sessionEnd', 'subagentStop']);
-  const installed = await installCodex({ ...config, launcher: process.execPath, args: [resolve('bootstrap/bin/re-desktop.mjs'), 'mcp'], root: host.paths.root, executeCommand: async () => ({ stdout: '' }) });
+  const installed = await installCodex({ ...config, launcher: process.execPath, args: [resolve('bootstrap/bin/re-desktop.mjs'), 'mcp'], root: host.paths.root });
   assert.equal(installed.hook_trust, 'trusted');
   assert.match(await readFile(join(home, 'config.toml'), 'utf8'), /preserve-this/);
   report.checks.push('Native hook discovery finds SessionEnd and SubagentStop; exact reviewed hashes are trusted using the supported configuration API');

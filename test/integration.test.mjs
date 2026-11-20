@@ -101,11 +101,12 @@ test('Codex installation preserves other hook groups and is idempotent with lite
   assert.equal(result.hooks.SubagentStop.length, 1);
   assert.match(result.hooks.SessionEnd[1].hooks[0].command, /codex-cleanup/);
   assert.equal(result.hooks.SessionEnd[1].hooks[0].timeout, 3);
-  assert.deepEqual(calls[0][1], ['mcp', 'add', 're_desktop', '--', process.execPath, ...args]);
+  assert.deepEqual(calls[0][1], ['mcp', 'add', 're_desktop', '--env', `RE_DESKTOP_RUNTIME=${join(root, 'profile')}`, '--', process.execPath, ...args]);
   assert.equal(calls[0][2].env.CODEX_HOME, home);
-  await installCodex({ command: process.execPath, home, launcher: resolve('mise-launcher'), args: ['-C', home, 'exec', '--', 're-desktop', 'mcp'], cleanupLauncher: process.execPath, cleanupArgs: [resolve('bootstrap/bin/re-desktop.mjs')], root: join(root, 'profile'), executeCommand: async (...params) => calls.push(params) });
+  await installCodex({ command: process.execPath, home, launcher: resolve('mise-launcher'), args: ['-C', home, 'exec', '--', 're-desktop', 'mcp'], cleanupLauncher: process.execPath, cleanupArgs: [resolve('bootstrap/bin/re-desktop.mjs')], root: join(root, 'profile'), store: join(root, 'Program cache ☁'), executeCommand: async (...params) => calls.push(params) });
   const updated = JSON.parse(await readFile(join(home, 'hooks.json')));
   assert.equal(updated.hooks.SessionEnd.length, 2);
   assert.ok(!updated.hooks.SessionEnd[1].hooks[0].command.includes('mise-launcher'), 'Cleanup must use installed local bytes, without mise auto-install');
-  assert.equal(calls.at(-1)[1][4], resolve('mise-launcher'));
+  assert.ok(calls.at(-1)[1].includes(resolve('mise-launcher')));
+  assert.ok(calls.at(-1)[1].includes(`RE_DESKTOP_STORE=${join(root, 'Program cache ☁')}`));
 });
