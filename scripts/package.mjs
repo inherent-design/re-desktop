@@ -26,7 +26,7 @@ const paths = await packager({
   dir: stage, out, name: 're-desktop', executableName: 're-desktop',
   appVersion: pkg.version, appBundleId: 'design.inherent.re-desktop',
   win32metadata: { CompanyName: 'inherent.design', ProductName: 're:desktop' },
-  appCopyright: 'Copyright 2026 mannie-exe',
+  appCopyright: 'Copyright 2026 inherent.design contributors',
   extendInfo: { LSUIElement: true, CFBundleDisplayName: 're:desktop' },
   platform: process.platform, arch: process.arch, asar: true, overwrite: true,
   electronVersion: pkg.devDependencies.electron, prune: false, quiet: true

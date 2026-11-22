@@ -25,4 +25,4 @@ Keep changes focused, preserve unrelated work, and retain a reproduction for a c
 
 Use complete, direct prose and one owner for each contract. README owns getting started; reference documents own detailed behavior. Keep proposed or accepted future commands separate from released interfaces. Put run-specific evidence in CI, pull requests, or the task store, rather than adding competing delivery logs to the repository. Never commit credentials, private diagnostics, personal store identifiers, or machine-specific setup.
 
-Contributions are distributed under the project's [MIT license](LICENSE). Preserve upstream licenses and [third-party notices](THIRD_PARTY_NOTICES.md).
+Contributions are distributed under the project's [Apache-2.0 license](LICENSE). Preserve upstream licenses and [third-party notices](THIRD_PARTY_NOTICES.md).

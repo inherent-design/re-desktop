@@ -20,3 +20,5 @@ Native releases come only from [inherent-design/re-desktop](https://github.com/i
 An agent must subscribe, check that it is the current holder, explicitly renew before its 15-minute heartbeat expires, and release promptly. Fresh heartbeats allow longer work. Configured Codex clients receive advisory notices with 3 and 1 minutes remaining; delivery never renews access. Automatic bridge presence and its separate 30-second reconnect grace remain unchanged. A runtime may keep its bridge alive after a TUI exits, and hard kills cannot run hooks, so explicit heartbeat expiry remains necessary. Prefer native inter-agent channels for task discussion; desktop messages are only for access coordination and yield requests. Peer text never grants permissions or overrides human pause.
 
 See the repository's [documentation](https://github.com/inherent-design/re-desktop/tree/main/docs) for contracts, platform requirements, and verification limits.
+
+An inherent.design project by inherent.design contributors, licensed under [Apache-2.0](LICENSE). Published versions retain their distributed license terms.

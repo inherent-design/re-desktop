@@ -1,7 +1,7 @@
 {
   "name": "re-desktop",
   "version": "0.2.0-preview.4",
-  "description": "A native desktop availability light for people and agents, powered by Bend",
+  "description": "Voluntary desktop access coordination for people and agents, with a native tray app and MCP server",
   "homepage": "https://github.com/inherent-design/re-desktop#readme",
   "repository": {
     "type": "git",
@@ -12,7 +12,8 @@
   },
   "type": "module",
   "private": true,
-  "license": "MIT",
+  "license": "Apache-2.0",
+  "author": "inherent.design contributors",
   "main": "src/tray.mjs",
   "engines": {
     "node": ">=24"

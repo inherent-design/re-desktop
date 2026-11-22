@@ -84,4 +84,4 @@ An agent subscribes, takes access immediately before desktop work, proceeds when
 
 Bend implements the running coordinator in [core/access.bend](core/access.bend). [LAWS.bend](LAWS.bend) and [PROOF.bend](PROOF.bend) check seven specific invariants. Host, transport, native UI, and compiler behavior require separate execution tests.
 
-Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities through [SECURITY.md](SECURITY.md). The project is maintained at [inherent-design/re-desktop](https://github.com/inherent-design/re-desktop) and licensed under [MIT](LICENSE), with [third-party notices](THIRD_PARTY_NOTICES.md).
+Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities through [SECURITY.md](SECURITY.md). The project is maintained at [inherent-design/re-desktop](https://github.com/inherent-design/re-desktop) by inherent.design contributors and licensed under [Apache-2.0](LICENSE), with [third-party notices](THIRD_PARTY_NOTICES.md).
