@@ -66,6 +66,10 @@ def normalize_settings(value):
         # must not change when the project's new starting values enable it.
         value.setdefault('magenta_fade', False)
         value.setdefault('magenta_core', 0)
+        value.setdefault('transparent_background', False)
+    elif 'background' in value and 'transparent_background' not in value:
+        # A legacy raw settings document with an explicit background is opaque.
+        value['transparent_background'] = False
     if 'bottom_gap' in value:
         gaps = [value.pop('bottom_gap')] * 2
         if 'bottom_gaps' in value and value['bottom_gaps'] != gaps:
@@ -102,6 +106,8 @@ def normalize_settings(value):
     number(settings['magenta_core'], 'magenta_core', 0, 0.99)
     if not isinstance(settings['magenta_fade'], bool):
         raise SettingsError('magenta_fade', 'Enable or disable the magenta edge fade with true or false.')
+    if not isinstance(settings['transparent_background'], bool):
+        raise SettingsError('transparent_background', 'Choose a transparent or opaque background with true or false.')
     if not isinstance(settings['colors'], list) or len(settings['colors']) != 3:
         raise SettingsError('colors', 'Provide three ink colors.')
     for field, color in [('background', settings['background']), *[(f'colors.{i}', c) for i, c in enumerate(settings['colors'])]]:
@@ -124,11 +130,11 @@ def chunk(kind, data):
     return struct.pack('>I', len(data)) + payload + struct.pack('>I', zlib.crc32(payload) & 0xFFFFFFFF)
 
 
-def png_bytes(size, rgb):
-    stride = size * 3
-    rows = b''.join(b'\x00' + rgb[y * stride:(y + 1) * stride] for y in range(size))
+def png_bytes(size, rgba):
+    stride = size * 4
+    rows = b''.join(b'\x00' + rgba[y * stride:(y + 1) * stride] for y in range(size))
     return (b'\x89PNG\r\n\x1a\n'
-            + chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 2, 0, 0, 0))
+            + chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0))
             + chunk(b'sRGB', b'\x00') + chunk(b'IDAT', zlib.compress(rows, 9)) + chunk(b'IEND', b''))
 
 
@@ -159,8 +165,10 @@ def render(size, settings):
     core = settings['cyan_core']
     background = rgb_color(settings['background'])
     inks = [tuple(c / 255 for c in rgb_color(color)) for color in settings['colors']]
-    pure_cmy = settings['blend'] == 'multiply' and background == (255, 255, 255) and settings['colors'] == ['#FF00FF', '#FFFF00', '#00FFFF']
-    rgb = bytearray(bytes(background) * (size * size))
+    transparent = settings['transparent_background']
+    initial_alpha = 0 if transparent else 1
+    initial_rgb = [c / 255 * initial_alpha for c in background]
+    rgba = bytearray(bytes([0, 0, 0, 0] if transparent else [*background, 255]) * (size * size))
     for py in range(size):
         y = (py + 0.5) * unit_per_pixel
         if abs(y - my) > mr + unit_per_pixel:
@@ -184,17 +192,17 @@ def render(size, settings):
             yellow = yellow_opacity * middle * clamp((stripe_half - stripe_distance) * scale + 0.5)
             radius = math.hypot(x - cx, y - cy) / cr
             cyan = cyan_opacity * radial_fade(radius, core)
-            if pure_cmy:
-                pixel = (round(255 * (1 - cyan)), round(255 * (1 - magenta)), round(255 * (1 - yellow)))
-            else:
-                pixel = list(background)
-                for ink, alpha in zip(inks, [magenta, yellow, cyan]):
-                    for channel in range(3):
-                        if settings['blend'] == 'multiply':
-                            pixel[channel] *= 1 - alpha + alpha * ink[channel]
-                        else:
-                            pixel[channel] = pixel[channel] * (1 - alpha) + 255 * ink[channel] * alpha
-                pixel = tuple(round(c) for c in pixel)
-            offset = (py * size + px) * 3
-            rgb[offset:offset + 3] = bytes(pixel)
-    return png_bytes(size, rgb)
+            # Premultiplied source-over with alpha-aware multiply blending.
+            # Uncovered backdrop contributes no ink; never matte against white.
+            pixel, coverage = initial_rgb[:], initial_alpha
+            for ink, alpha in zip(inks, [magenta, yellow, cyan]):
+                for channel in range(3):
+                    source = ink[channel]
+                    blended = ((1 - coverage) * source + pixel[channel] * source
+                               if settings['blend'] == 'multiply' else source)
+                    pixel[channel] = pixel[channel] * (1 - alpha) + alpha * blended
+                coverage = alpha + coverage * (1 - alpha)
+            encoded = [round(255 * clamp(c / coverage)) for c in pixel] if coverage else [0, 0, 0]
+            offset = (py * size + px) * 4
+            rgba[offset:offset + 4] = bytes([*encoded, round(255 * coverage)])
+    return png_bytes(size, rgba)

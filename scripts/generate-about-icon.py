@@ -22,6 +22,7 @@ def main():
     parser.add_argument('--bottom-gap', type=float, help='legacy shortcut: set both bottom insets')
     parser.add_argument('--colors', nargs=3)
     parser.add_argument('--background')
+    parser.add_argument('--transparent-background', action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument('--blend', choices=['multiply', 'normal'])
     args = parser.parse_args()
     try:
@@ -29,6 +30,8 @@ def main():
         settings = normalize_settings(base)
         overrides = {key: value for key, value in vars(args).items()
                      if key not in {'output', 'size', 'metadata', 'settings'} and value is not None}
+        if args.background is not None and args.transparent_background is None:
+            overrides['transparent_background'] = False
         if 'bottom_gap' in overrides:
             if 'bottom_gaps' in overrides:
                 parser.error('choose --bottom-gap or --bottom-gaps')

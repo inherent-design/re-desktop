@@ -54,6 +54,22 @@ try {
   await tool(a.client, 'desktop_release', { lease_token: access.lease.token });
   assert.equal((await tool(b.client, 'desktop_status')).data.holder.session_id, two.session_id);
   report.checks.push('Two packaged MCP bridges subscribed, contended and handed off access');
+  await tool(a.client, 'desktop_take');
+  if (native) await execute(resolve('build/macos-menu'), [String(app.pid), 'Pause after current access'], { timeout: 5000 });
+  else host.coordinator.pauseAfter();
+  const pending = (await tool(b.client, 'desktop_status')).data;
+  assert.equal(pending.access_mode, 'pause_after');
+  assert.equal(pending.grants_allowed, false);
+  assert.equal(pending.holder.session_id, two.session_id);
+  await tool(b.client, 'desktop_heartbeat', { lease_token: pending.lease.token });
+  const paused = (await tool(b.client, 'desktop_release', { lease_token: pending.lease.token })).data;
+  assert.equal(paused.access_mode, 'pause');
+  assert.equal(paused.holder, null);
+  assert.equal(paused.queue[0].session_id, one.session_id);
+  report.checks.push('Packaged Pause after keeps holder renewal valid and ends in Pause without handing off');
+  if (native) await execute(resolve('build/macos-menu'), [String(app.pid), 'Allow agent access'], { timeout: 5000 });
+  else host.coordinator.setBlocked(false);
+  assert.equal((await tool(a.client, 'desktop_status')).data.holder.session_id, one.session_id);
   if (native) {
     await execute(resolve('build/macos-menu'), [String(app.pid), 'Pause agent access'], { timeout: 5000 });
     for (let attempt = 0; attempt < 40; attempt++) {

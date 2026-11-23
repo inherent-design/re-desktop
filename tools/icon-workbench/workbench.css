@@ -90,6 +90,10 @@ h2 { font-size: 1.25rem; line-height: 1.35; font-weight: 600; }
 .stage { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 1; min-height: 180px; overflow: hidden; background: var(--surface-inset); border: 1px solid var(--line-subtle); border-radius: 5px; touch-action: none; }
 .stage.is-zoomed { cursor: grab; }
 .stage.is-panning { cursor: grabbing; }
+.stage, .size-checks img { background-color: #fff; background-image: conic-gradient(#e0e4ea 25%, transparent 0 50%, #e0e4ea 0 75%, transparent 0); background-size: 16px 16px; }
+[data-surface="light"] .stage, [data-surface="light"] .size-checks img { background: #fff; }
+[data-surface="dark"] .stage, [data-surface="dark"] .size-checks img { background: #171b24; }
+[data-surface="blue"] .stage, [data-surface="blue"] .size-checks img { background: #2563eb; }
 .artboard { position: relative; width: 100%; aspect-ratio: 1; will-change: transform; }
 .artboard > img, .artboard > svg { position: absolute; inset: 0; width: 100%; height: 100%; user-select: none; pointer-events: none; }
 .reference-stage > img { width: 100%; height: 100%; object-fit: contain; }

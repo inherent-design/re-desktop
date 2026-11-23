@@ -20,8 +20,8 @@ test('negotiation chooses the highest common API independently of product and in
 });
 
 test('disjoint APIs and missing capabilities identify upgrades; malformed offers and agreements fail', () => {
-  assert.throws(() => negotiate(apiOffer({ shared_apis: [3] })), e => e.code === 'API_UPGRADE_REQUIRED' && e.details.component === 'host');
-  assert.throws(() => negotiate(apiOffer(), { ...api, shared: { ...api.shared, supported: [3] } }), e => e.code === 'API_UPGRADE_REQUIRED' && e.details.component === 'bridge');
+  assert.throws(() => negotiate(apiOffer({ shared_apis: [4] })), e => e.code === 'API_UPGRADE_REQUIRED' && e.details.component === 'host');
+  assert.throws(() => negotiate(apiOffer(), { ...api, shared: { ...api.shared, supported: [4] } }), e => e.code === 'API_UPGRADE_REQUIRED' && e.details.component === 'bridge');
   assert.throws(() => negotiate(apiOffer({ required_capabilities: ['unknown'] })), { code: 'API_CAPABILITY_REQUIRED' });
   for (const offer of [null, [], apiOffer({ shared_apis: [] }), apiOffer({ shared_apis: [1, 1] }), apiOffer({ shared_apis: ['1'] }), apiOffer({ product_version: 'not-semver' }), apiOffer({ extra: true })]) assert.throws(() => negotiate(offer), { code: 'API_INVALID_OFFER' });
   const offer = apiOffer(), result = negotiate(offer);
@@ -31,13 +31,13 @@ test('disjoint APIs and missing capabilities identify upgrades; malformed offers
 test('real peers negotiate before operations; independent host versions work and mismatches do not create sessions', async t => {
   const root = await mkdtemp(join(tmpdir(), 'rd-api-'));
   const host = await startHost({ root, apiDescriptor: { ...api, product: '9.0.0', host: '3.0.0' } });
-  const compatible = new Peer({ root }), incompatible = new Peer({ root, offer: apiOffer({ shared_apis: [3] }) });
+  const compatible = new Peer({ root }), incompatible = new Peer({ root, offer: apiOffer({ shared_apis: [4] }) });
   t.after(async () => { await compatible.close(); await incompatible.close(); await host.close(); await rm(root, { recursive: true, force: true }); });
   await assert.rejects(incompatible.call('subscribe', { name: 'No access', workspace: process.cwd() }), { code: 'API_UPGRADE_REQUIRED' });
   assert.equal(host.coordinator.sessions.size, 0);
   assert.equal((await compatible.call('status')).availability, 'blocked');
   assert.equal(compatible.agreement.host_version, '9.0.0');
-  assert.equal(compatible.agreement.shared_api, 2);
+  assert.equal(compatible.agreement.shared_api, 3);
 });
 
 test('an authenticated legacy client cannot mutate state without negotiation', async t => {
@@ -52,6 +52,19 @@ test('an authenticated legacy client cannot mutate state without negotiation', a
   });
   assert.equal(reply.error.code, 'API_NEGOTIATION_REQUIRED');
   assert.equal(host.coordinator.sessions.size, 0);
+});
+
+test('IPC 2 cannot cross the three-mode boundary in either direction', async t => {
+  for (const legacyHost of [false, true]) {
+    const root = await mkdtemp(join(tmpdir(), 'rd-api-mode-'));
+    const descriptor = legacyHost ? { ...api, shared: { ...api.shared, supported: [2], capabilities: api.shared.capabilities.filter(c => c !== 'pause-after') } } : api;
+    const host = await startHost({ root, apiDescriptor: descriptor });
+    const peer = new Peer({ root, ...(legacyHost ? {} : { offer: apiOffer({ shared_apis: [2], required_capabilities: ['status'] }) }) });
+    t.after(async () => { await peer.close(); await host.close(); await rm(root, { recursive: true, force: true }); });
+    await assert.rejects(peer.call('subscribe', { name: 'Incompatible mode interpretation', workspace: process.cwd() }), e => e.code === 'API_UPGRADE_REQUIRED' && e.details.component === (legacyHost ? 'host' : 'bridge'));
+    assert.equal(host.coordinator.sessions.size, 0);
+    assert.equal(host.coordinator.snapshot().holder, null);
+  }
 });
 
 test('a legacy host yields an actionable upgrade without any attempted subscription', async t => {
@@ -78,10 +91,10 @@ test('a legacy host yields an actionable upgrade without any attempted subscript
 
 test('an active session cannot renegotiate a different shared API', async t => {
   const root = await mkdtemp(join(tmpdir(), 'rd-api-'));
-  const host = await startHost({ root, apiDescriptor: { ...api, shared: { ...api.shared, supported: [1, 2] } } });
+  const host = await startHost({ root, apiDescriptor: { ...api, shared: { ...api.shared, supported: [2, 3] } } });
   const peer = new Peer({ root });
   t.after(async () => { await peer.close(); await host.close(); await rm(root, { recursive: true, force: true }); });
   const session = await peer.call('subscribe', { name: 'Pinned API', workspace: process.cwd() });
-  await assert.rejects(peer.rpc('hello', apiOffer({ shared_apis: [1] })), { code: 'API_RENEGOTIATION_REFUSED' });
+  await assert.rejects(peer.rpc('hello', apiOffer({ shared_apis: [2] })), { code: 'API_RENEGOTIATION_REFUSED' });
   assert.equal((await peer.call('status')).you.session_id, session.session_id);
 });

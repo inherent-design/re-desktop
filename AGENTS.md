@@ -8,7 +8,7 @@ Bend owns the access state machine. Do not duplicate its scheduling or lease dec
 
 Use the pinned local toolchain through project scripts. Test the actual running boundary when a change affects transport, lifecycle or native tray behavior. Record what the check exercised; do not equate configured cross-platform CI with observed execution. Keep Markdown prose unwrapped.
 
-`npm run check` includes Knip. Keep its declared entries and the independently published bootstrap workspace accurate; do not hide findings with broad ignores. Prefer native inter-agent channels for task discussion; reserve `desktop_message` for desktop access and yield requests. Bridge presence never renews the explicit holder heartbeat.
+`npm run check` includes Knip. Keep its declared entries and the independently published bootstrap workspace accurate; do not hide findings with broad ignores. Prefer native inter-agent channels for task discussion; reserve `desktop_message` for desktop access and yield requests. Bridge presence never renews the explicit holder heartbeat. Immediate Pause revokes access; Pause after preserves only the current grant and must complete before any handoff. Keep human mode and holder identity explicit in every consumer.
 
 Do not push, publish a release, deploy, rewrite history or modify unrelated projects without authorization. Ordinary checks must run without credentials. Avoid logging reconnect capabilities or other secrets.
 

@@ -30,7 +30,7 @@ FLAT_INKS = {
 }
 
 
-def pixels(png):
+def pixels(png, alpha=False):
     assert png[:8] == b'\x89PNG\r\n\x1a\n'
     cursor, compressed, size = 8, bytearray(), None
     while cursor < len(png):
@@ -41,17 +41,17 @@ def pixels(png):
         assert crc == zlib.crc32(kind + data) & 0xFFFFFFFF
         if kind == b'IHDR':
             width, height, depth, color, *_ = struct.unpack('>IIBBBBB', data)
-            assert width == height and depth == 8 and color == 2
+            assert width == height and depth == 8 and color == 6
             size = width
         if kind == b'IDAT':
             compressed.extend(data)
         cursor += length + 12
     rows = zlib.decompress(compressed)
-    assert len(rows) == size * (size * 3 + 1)
-    assert all(rows[y * (size * 3 + 1)] == 0 for y in range(size))
+    assert len(rows) == size * (size * 4 + 1)
+    assert all(rows[y * (size * 4 + 1)] == 0 for y in range(size))
     def pixel(x, y):
-        offset = y * (size * 3 + 1) + 1 + x * 3
-        return tuple(rows[offset:offset + 3])
+        offset = y * (size * 4 + 1) + 1 + x * 4
+        return tuple(rows[offset:offset + (4 if alpha else 3)])
     return size, pixel
 
 
@@ -59,9 +59,9 @@ class ArtworkTests(unittest.TestCase):
     def test_reviewed_settings_reproduce_asset(self):
         self.assertEqual(render(1024, DEFAULT_SETTINGS), (ROOT / 'assets/about.png').read_bytes())
         self.assertEqual(render(32, DEFAULT_SETTINGS), render(32, DEFAULT_SETTINGS))
-        size, pixel = pixels(render(32, DEFAULT_SETTINGS))
+        size, pixel = pixels(render(32, DEFAULT_SETTINGS), alpha=True)
         self.assertEqual(size, 32)
-        self.assertEqual(pixel(0, 0), tuple(bytes.fromhex(DEFAULT_SETTINGS['background'][1:])))
+        self.assertEqual(pixel(0, 0), (0, 0, 0, 0))
 
     def test_independent_bottom_insets_control_geometry(self):
         base = {'canvas_units': 64, 'diameters': [42, 28, 20]}
@@ -116,11 +116,44 @@ class ArtworkTests(unittest.TestCase):
             {'unknown': 1}, {'dot_phase': [0]},
             {'formatVersion': True, 'settings': {}},
             {'magenta_fade': 'yes'}, {'magenta_core': 1},
+            {'transparent_background': 'yes'},
         ]
         for settings in invalid:
             with self.subTest(settings=settings), self.assertRaises(SettingsError):
                 normalize_settings(settings)
         self.assertEqual(DEFAULT_SETTINGS, before)
+
+    def test_transparent_inks_have_real_coverage_without_a_white_matte(self):
+        ink = dict(FLAT_INKS, transparent_background=True, opacities=[.5, .5, 0])
+        _, rgba = pixels(render(64, ink), alpha=True)
+        self.assertEqual(rgba(0, 0), (0, 0, 0, 0))
+        # Two half-opaque magenta/yellow inks: 3/4 coverage, straight RGB 1,1/3,1/3.
+        self.assertEqual(rgba(32, 31), (255, 85, 85, 191))
+        _, normal = pixels(render(64, dict(ink, blend='normal')), alpha=True)
+        self.assertEqual(normal(32, 31), (255, 170, 85, 191))
+        _, empty = pixels(render(32, dict(ink, opacities=[0, 0, 0])), alpha=True)
+        self.assertEqual(empty(16, 16), (0, 0, 0, 0))
+
+    def test_transparent_fade_changes_alpha_instead_of_lightening_ink(self):
+        ink = dict(FLAT_INKS, transparent_background=True, opacities=[1, 0, 0], magenta_fade=True, magenta_core=0)
+        _, rgba = pixels(render(128, ink), alpha=True)
+        self.assertEqual(rgba(88, 64)[:3], (255, 0, 255))
+        self.assertEqual(rgba(112, 64)[:3], (255, 0, 255))
+        self.assertGreater(rgba(64, 64)[3], rgba(88, 64)[3])
+        self.assertGreater(rgba(88, 64)[3], rgba(112, 64)[3])
+        self.assertLess(rgba(112, 64)[3], 15)
+
+    def test_legacy_backgrounds_stay_opaque_and_new_transparency_round_trips(self):
+        legacy = dict(DEFAULT_SETTINGS)
+        legacy.pop('transparent_background')
+        for document in [legacy, {'formatVersion': 1, 'settings': legacy}]:
+            restored = normalize_settings(document)
+            self.assertFalse(restored['transparent_background'])
+            _, rgba = pixels(render(32, restored), alpha=True)
+            self.assertEqual(rgba(0, 0), (255, 255, 255, 255))
+        exported = {'formatVersion': 1, 'settings': DEFAULT_SETTINGS}
+        self.assertEqual(normalize_settings(exported), DEFAULT_SETTINGS)
+        self.assertTrue(normalize_settings({})['transparent_background'])
 
 
 class ServerTests(unittest.TestCase):

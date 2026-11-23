@@ -8,7 +8,7 @@ const metadata = (session, actions, remainingMs) => [
 ];
 
 export function availabilityLabel(snapshot) {
-  return snapshot.user_blocked ? 'Agent access paused' : snapshot.holder ? `${snapshot.holder.name} has access` : snapshot.queue[0]?.connected === false ? `Waiting for ${snapshot.queue[0].name} to reconnect` : 'Desktop available';
+  return snapshot.user_blocked ? 'Agent access paused' : snapshot.access_mode === 'pause_after' ? `Pausing after ${snapshot.holder.name}'s access` : snapshot.holder ? `${snapshot.holder.name} has access` : snapshot.queue[0]?.connected === false ? `Waiting for ${snapshot.queue[0].name} to reconnect` : 'Desktop available';
 }
 
 export function menuTemplate(snapshot, actions) {
@@ -16,8 +16,11 @@ export function menuTemplate(snapshot, actions) {
     { label: 're:desktop', enabled: false },
     { id: 'holder', label: literal(availabilityLabel(snapshot)), enabled: Boolean(snapshot.holder), submenu: snapshot.holder ? metadata(snapshot.holder, actions, snapshot.lease.remaining_ms) : undefined },
     { type: 'separator' },
-    snapshot.user_blocked ? { id: 'allow', label: 'Allow agent access', click: actions.allow } : { id: 'pause', label: 'Pause agent access', click: actions.pause },
-    { id: 'end-access', label: 'End current access', enabled: Boolean(snapshot.holder), click: actions.endAccess },
+    { id: 'pause', label: 'Pause agent access', type: 'checkbox', checked: snapshot.access_mode === 'pause', click: actions.pause },
+    { id: 'pause-after', label: 'Pause after current access', type: 'checkbox', checked: snapshot.access_mode === 'pause_after', click: actions.pauseAfter },
+    { id: 'allow', label: 'Allow agent access', type: 'checkbox', checked: snapshot.access_mode === 'allow', click: actions.allow },
+    ...(snapshot.access_mode === 'pause_after' ? [{ label: 'No next session will receive access', enabled: false }] : []),
+    { id: 'end-access', label: snapshot.access_mode === 'pause_after' ? 'End current access and pause' : 'End current access', enabled: Boolean(snapshot.holder), click: actions.endAccess },
     { type: 'separator' },
     { label: `Waiting for access (${snapshot.queue.length})`, submenu: snapshot.queue.length ? snapshot.queue.map((session, i) => ({ label: literal(`${i + 1}. ${session.name}`), submenu: metadata(session, actions) })) : [{ label: 'No sessions waiting', enabled: false }] },
     { label: `Sessions (${snapshot.sessions.length})`, submenu: snapshot.sessions.length ? snapshot.sessions.map(session => ({ label: literal(`${session.name}${session.connected ? '' : ' · reconnecting'}`), submenu: metadata(session, actions) })) : [{ label: 'No sessions', enabled: false }] },

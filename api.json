@@ -1,9 +1,9 @@
 {
-  "agent": "1.2.0",
-  "host": "1.1.0",
+  "agent": "2.0.0",
+  "host": "2.0.0",
   "shared": {
     "supported": [
-      2
+      3
     ],
     "capabilities": [
       "status",
@@ -12,7 +12,8 @@
       "queue",
       "messages",
       "heartbeat-warnings",
-      "session-cleanup"
+      "session-cleanup",
+      "pause-after"
     ]
   }
 }

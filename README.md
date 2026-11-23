@@ -2,7 +2,7 @@
 
 A desktop availability indicator for people and cooperating agents, with a native tray/menu bar app and an MCP server. Bend implements access scheduling, lease expiry, and human pause.
 
-The menu shows the current holder, sessions, workspaces, and a numbered waiting queue. Green means available, solid red means agent access is paused, and a solid orange-yellow circle means an agent has access. Coordination is voluntary; you can still use your desktop.
+The menu shows the current holder, sessions, workspaces, and a numbered waiting queue. Green means available, solid red means agent access is paused, a solid orange-yellow circle means an agent has access, and blue means Pause after current access is pending. Coordination is voluntary; you can still use your desktop.
 
 The project is experimental. Native previews are unsigned. See [verification](docs/verification.md) for executed checks and platform limits.
 
@@ -21,7 +21,7 @@ With mise, use `mise use -g 'npm:@inherent.design/re-desktop@preview'` instead o
 
 Each [GitHub preview](https://github.com/inherent-design/re-desktop/releases) also attaches the bootstrap tarball. Check its SHA-256 against `npm.sha256` in the attached `release.json` before installing that file with npm.
 
-Setup verifies the exact selected native release and prints MCP configuration with absolute paths. Configure your agent client with that entry. First subscription can start the visible shared tray, initially paused. Choose **Allow agent access** from its menu before desktop work. **Pause agent access** ends held access and prevents new grants. **Quit re:desktop** prevents automatic respawn; open the native app or run `re-desktop start` to resume.
+Setup verifies the exact selected native release and prints MCP configuration with absolute paths. Configure your agent client with that entry. First subscription can start the visible shared tray, initially paused. Choose **Allow agent access** from its menu before desktop work. **Pause agent access** ends held access immediately and prevents new grants. **Pause after current access** keeps the current grant, then pauses before any handoff. Choose **Allow agent access** to cancel a pending pause. **Quit re:desktop** prevents automatic respawn; open the native app or run `re-desktop start` to resume.
 
 `re-desktop status` reports runtime policy and negotiated APIs. `re-desktop config` prints configuration without starting the tray. `setup --version <exact-version>` selects a release for new connections; `--offline` requires a prepared generation. Existing bridges and hosts stay on their current versions. The bootstrap retains prior verified generations; npm owns bootstrap updates.
 
@@ -46,7 +46,7 @@ npm run check
 npm start
 ```
 
-Keep the app running before using its MCP tools. It starts paused; choose **Allow agent access** from the tray menu. **Pause agent access** ends current cooperative access and prevents further grants. Confirmed disconnection releases access immediately. A 15-minute agent heartbeat covers a bridge that remains alive after its agent stops.
+Keep the app running before using its MCP tools. It starts paused; choose **Allow agent access** from the tray menu. **Pause agent access** ends current cooperative access immediately. **Pause after current access** lets the current grant finish, then prevents further grants. Confirmed disconnection releases access immediately. A 15-minute agent heartbeat covers a bridge that remains alive after its agent stops.
 
 To build the native app:
 
@@ -82,6 +82,6 @@ An agent subscribes, takes access immediately before desktop work, proceeds when
 - [Verification](docs/verification.md)
 - [Distribution design](docs/distribution.md)
 
-Bend implements the running coordinator in [core/access.bend](core/access.bend). [LAWS.bend](LAWS.bend) and [PROOF.bend](PROOF.bend) check seven specific invariants. Host, transport, native UI, and compiler behavior require separate execution tests.
+Bend implements the running coordinator in [core/access.bend](core/access.bend). [LAWS.bend](LAWS.bend) and [PROOF.bend](PROOF.bend) check thirteen specific invariants. Host, transport, native UI, and compiler behavior require separate execution tests.
 
 Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md). Report vulnerabilities through [SECURITY.md](SECURITY.md). The project is maintained at [inherent-design/re-desktop](https://github.com/inherent-design/re-desktop) by inherent.design contributors and licensed under [Apache-2.0](LICENSE), with [third-party notices](THIRD_PARTY_NOTICES.md).

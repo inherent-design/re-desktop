@@ -15,11 +15,11 @@ function chunk(type, bytes) {
   return out;
 }
 
-// Code-native status artwork: solid green, solid red, solid orange-yellow.
+// Brand blue (#2563EB) means Pause after; ordinary held access stays orange-yellow.
 export function iconPng(availability, size = 32) {
   const pixels = Buffer.alloc((size * 4 + 1) * size);
   const scale = size / 32;
-  const rgb = availability === 'available' ? [28, 177, 98] : availability === 'in_use' ? [245, 179, 1] : [229, 63, 73];
+  const rgb = availability === 'available' ? [28, 177, 98] : availability === 'in_use' ? [245, 179, 1] : availability === 'pausing' ? [37, 99, 235] : [229, 63, 73];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const radius = Math.hypot((x + 0.5) / scale - 16, (y + 0.5) / scale - 16);
     const edge = Math.min(1, Math.max(0, 12.5 - radius));

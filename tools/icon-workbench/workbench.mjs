@@ -181,7 +181,13 @@ function buildControls() {
   $('#layer-badge').textContent = layer === 'canvas' ? 'Whole mark' : `Layer ${layer + 1}`;
   if (layer === 'canvas') {
     numberField('canvas_units', 'Canvas size', 8, 128, 1, 'u', 'The largest disc stays centered on this square.');
-    colorField('background', 'Background');
+    const transparency = document.createElement('div'); transparency.className = 'field toggle-field';
+    transparency.innerHTML = '<label for="transparent-background"><input id="transparent-background" type="checkbox" data-path="transparent_background"> Transparent background</label><p class="caption">Preserve ink opacity and transparent edges in PNG exports. The preview surface is not part of the artwork.</p>';
+    const transparent = transparency.querySelector('input'); transparent.checked = state.settings.transparent_background;
+    transparent.addEventListener('change', () => { state.settings.transparent_background = transparent.checked; changed(); buildControls(); });
+    $('#controls').append(transparency);
+    colorField('background', 'Opaque background color');
+    $$('[data-path="background"]').forEach(input => input.closest('.field').querySelectorAll('input').forEach(control => { control.disabled = state.settings.transparent_background; }));
     const field = document.createElement('div'); field.className = 'field';
     field.innerHTML = '<label for="blend">Ink blending</label><select id="blend"><option value="multiply">Multiply</option><option value="normal">Normal</option></select><p class="caption">Multiply makes cyan over yellow appear green.</p>';
     field.querySelector('select').value = state.settings.blend;
@@ -218,6 +224,10 @@ function buildControls() {
   }
   if (state.error) showError(state.error);
 }
+
+$('#preview-surface').addEventListener('change', (event) => {
+  $('.preview-panel').dataset.surface = event.target.value;
+});
 function updateGeometry(result) {
   const [, middle, inner] = result.geometry;
   const dy = inner.center[1] - middle.center[1];

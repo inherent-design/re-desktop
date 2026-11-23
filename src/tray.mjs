@@ -35,16 +35,17 @@ else app.whenReady().then(async () => {
     let menu;
     const humanAction = (name, apply) => () => {
       apply();
-      if (process.env.RE_DESKTOP_RUNTIME && process.env.RE_DESKTOP_TEST_TRACE) console.error(JSON.stringify({ action: name, blocked: host.coordinator.state.blocked }));
+      if (process.env.RE_DESKTOP_RUNTIME && process.env.RE_DESKTOP_TEST_TRACE) console.error(JSON.stringify({ action: name, access_mode: host.coordinator.snapshot().access_mode }));
     };
     const actions = {
       copySessionId: id => clipboard.writeText(id).catch(() => dialog.showErrorBox('Could not copy session ID', 'The system clipboard refused the copy. Try again.')),
       pause: humanAction('pause', () => host.coordinator.setBlocked(true)),
+      pauseAfter: humanAction('pause-after', () => host.coordinator.pauseAfter()),
       allow: humanAction('allow', () => host.coordinator.setBlocked(false)),
       endAccess: humanAction('end-access', () => host.coordinator.endAccess()),
       about: () => dialog.showMessageBox({
         type: 'info', title: `About ${displayName}`, message: displayName, buttons: ['Close'], icon: aboutIcon,
-        detail: `You can still use your desktop.\n\nPause agent access ends current access and stops new grants. Allow agent access lets sessions receive access.\n\nEnd current access lets the next waiting session take over.\n\nAgents must check in within ${Math.ceil(host.coordinator.snapshot().heartbeat_timeout_ms / 60000)} minutes to keep access. Each check-in renews that window.\n\nQuitting closes the service. Agents cannot reopen it until you open re:desktop again.\n\nGreen: available\nRed: agent access paused\nOrange-yellow: a session has access\n\nre:desktop ${app.getVersion()}\nBend 2.0.40 · MCP`
+        detail: `You can still use your desktop.\n\nPause agent access ends current access immediately and stops new grants. Pause after current access lets the current session keep its access, then pauses before any handoff. With no current session, it pauses immediately. Allow agent access permits further grants.\n\nEnd current access lets the next waiting session take over, unless Pause after is selected; then access stays paused.\n\nAgents must check in within ${Math.ceil(host.coordinator.snapshot().heartbeat_timeout_ms / 60000)} minutes to keep access. Each check-in renews that window, including during Pause after. The current session can keep renewing until you choose immediate Pause.\n\nQuitting closes the service. Agents cannot reopen it until you open re:desktop again.\n\nGreen: available\nRed: agent access paused\nBlue: pause after current access\nOrange-yellow: a session has access\n\nre:desktop ${app.getVersion()}\nBend 2.0.40 · MCP`
       }),
       quit: () => { humanQuit = true; app.quit(); }
     };

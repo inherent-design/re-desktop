@@ -3,28 +3,57 @@ import Base
 type Session is Data:
   Session{id: Nat, until: Nat, online: Bool}
 
+type Mode is Data:
+  Paused{}
+  Allowed{}
+  PauseAfter{}
+
 type State is Data:
-  State{blocked: Bool, holder: Nat, epoch: Nat, until: Nat, queue: +List<Nat>, sessions: +List<Session>}
+  State{mode: Mode, holder: Nat, epoch: Nat, until: Nat, queue: +List<Nat>, sessions: +List<Session>}
 
 type Light is Data:
   Available{}
   Blocked{}
   InUse{}
+  Pausing{}
 
 # Agent heartbeat window, independent of transport presence and reconnect grace.
 def heartbeat_timeout() -> Nat:
   900000n
 
 def initial(blocked: Bool) -> State:
-  State{blocked, 0n, 0n, 0n, [], []}
+  State{Bool.pick(Mode, blocked, Paused{}, Allowed{}), 0n, 0n, 0n, [], []}
 
 def holder(s: State) -> Nat:
   State{b, h, e, u, q, ss} = s
   h
 
+def mode.blocked(mode: Mode) -> Bool:
+  match mode:
+    case Paused{}:
+      True{}
+    case Allowed{}:
+      False{}
+    case PauseAfter{}:
+      False{}
+
 def blocked(s: State) -> Bool:
-  State{b, h, e, u, q, ss} = s
-  b
+  State{m, h, e, u, q, ss} = s
+  mode.blocked(m)
+
+# Ending a pending grant completes the human's pause before any scheduling.
+def mode.ended(mode: Mode) -> Mode:
+  match mode:
+    case Paused{}:
+      Paused{}
+    case Allowed{}:
+      Allowed{}
+    case PauseAfter{}:
+      Paused{}
+
+def clear(s: State) -> State:
+  State{m, h, e, u, q, ss} = s
+  State{mode.ended(m), 0n, e, 0n, q, ss}
 
 def light.free(h: Nat) -> Light:
   match h:
@@ -35,10 +64,12 @@ def light.free(h: Nat) -> Light:
 
 def light(s: State) -> Light:
   match s:
-    case State{True{}, h, e, u, q, ss}:
+    case State{Paused{}, h, e, u, q, ss}:
       Blocked{}
-    case State{False{}, h, e, u, q, ss}:
+    case State{Allowed{}, h, e, u, q, ss}:
       light.free(h)
+    case State{PauseAfter{}, h, e, u, q, ss}:
+      Pausing{}
 
 def contains(xs: +List<Nat>, +id: Nat) -> Bool:
   match xs:
@@ -95,25 +126,30 @@ def trim(xs: +List<Nat>, +ss: +List<Session>) -> +List<Nat>:
 def grant(ok: Bool, +h: Nat, e: Nat, now: Nat, t: +List<Nat>, ss: +List<Session>) -> State:
   match ok:
     case False{}:
-      State{False{}, 0n, e, 0n, h <> t, ss}
+      State{Allowed{}, 0n, e, 0n, h <> t, ss}
     case True{}:
-      State{False{}, h, 1n+e, Nat.add(now, heartbeat_timeout()), t, ss}
+      State{Allowed{}, h, 1n+e, Nat.add(now, heartbeat_timeout()), t, ss}
 
 def schedule(s: State, now: Nat) -> State:
   match s:
-    case State{True{}, h, e, u, q, ss}:
-      State{True{}, 0n, e, 0n, q, ss}
-    case State{False{}, 0n, e, u, Nil{}, ss}:
-      State{False{}, 0n, e, 0n, [], ss}
-    case State{False{}, 0n, e, u, Con{+h, t}, +ss}:
+    case State{Paused{}, h, e, u, q, ss}:
+      State{Paused{}, 0n, e, 0n, q, ss}
+    case State{Allowed{}, 0n, e, u, Nil{}, ss}:
+      State{Allowed{}, 0n, e, 0n, [], ss}
+    case State{Allowed{}, 0n, e, u, Con{+h, t}, +ss}:
       grant(online(ss, h), h, e, now, t, ss)
-    case State{False{}, 1n+h, e, u, q, ss}:
-      State{False{}, 1n+h, e, u, q, ss}
+    case State{Allowed{}, 1n+h, e, u, q, ss}:
+      State{Allowed{}, 1n+h, e, u, q, ss}
+    case State{PauseAfter{}, 0n, e, u, q, ss}:
+      State{Paused{}, 0n, e, 0n, q, ss}
+    case State{PauseAfter{}, 1n+h, e, u, q, ss}:
+      State{PauseAfter{}, 1n+h, e, u, q, ss}
 
 def expire(s: State, +now: Nat, +ss: +List<Session>) -> State:
-  State{b, +h, e, +u, q, old} = s
+  State{+b, +h, +e, +u, q, old} = s
   valid = Bool.and(Nat.is_gt(u, now), exists(ss, h))
-  State{b, Bool.pick(Nat, valid, h, 0n), e, u, trim(q, ss), ss}
+  +next = {State{b, h, e, u, trim(q, ss), ss} : State}
+  Bool.pick(State, valid, next, clear(next))
 
 def advance(+s: State, +now: Nat) -> State:
   State{b, h, e, u, q, ss} = s
@@ -127,21 +163,38 @@ def presence(s: State, id: Nat, now: Nat, online: Bool) -> State:
 # remains available for reconnection, but the old access cannot be resumed.
 def disconnect(s: State, +id: Nat, now: Nat) -> State:
   State{b, +h, e, u, q, ss} = s
-  State{b, Bool.pick(Nat, Nat.is_eq(h, id), 0n, h), e, u, q, touch(ss, id, Nat.add(now, 30000n), False{})}
+  +next = {State{b, h, e, u, q, touch(ss, id, Nat.add(now, 30000n), False{})} : State}
+  Bool.pick(State, Nat.is_eq(h, id), clear(next), next)
 
 def block(s: State) -> State:
   State{b, h, e, u, q, ss} = s
-  State{True{}, 0n, e, 0n, q, ss}
+  State{Paused{}, 0n, e, 0n, q, ss}
+
+def pause_after(s: State) -> State:
+  match s:
+    case State{m, 0n, e, u, q, ss}:
+      State{Paused{}, 0n, e, 0n, q, ss}
+    case State{m, 1n+h, e, u, q, ss}:
+      State{PauseAfter{}, 1n+h, e, u, q, ss}
 
 def allow(s: State, now: Nat) -> State:
   State{b, h, e, u, q, ss} = s
-  schedule(State{False{}, h, e, u, q, ss}, now)
+  schedule(State{Allowed{}, h, e, u, q, ss}, now)
+
+def take.pending(mode: Mode) -> Bool:
+  match mode:
+    case Paused{}:
+      False{}
+    case Allowed{}:
+      False{}
+    case PauseAfter{}:
+      True{}
 
 def take.add(s: State, +id: Nat, wait: Bool) -> State:
   State{+b, +h, e, u, +q, +ss} = s
-  busy = Bool.or(Nat.is_ne(h, 0n), Bool.or(b, Nat.is_ne(List.length(&2, Nat, q), 0n)))
+  busy = Bool.or(Nat.is_ne(h, 0n), Bool.or(mode.blocked(b), Nat.is_ne(List.length(&2, Nat, q), 0n)))
   eligible = Bool.and(online(ss, id), Bool.and(Nat.is_ne(h, id), Bool.not(contains(q, id))))
-  append = Bool.and(eligible, Bool.or(wait, Bool.not(busy)))
+  append = Bool.and(Bool.not(take.pending(b)), Bool.and(eligible, Bool.or(wait, Bool.not(busy))))
   next = Bool.pick(+List<Nat>, append, List.append(&2, Nat, q, [id]), q)
   State{b, h, e, u, next, ss}
 
@@ -157,8 +210,7 @@ def release.checked(ok: Bool, s: State) -> State:
     case False{}:
       s
     case True{}:
-      State{b, h, e, u, q, ss} = s
-      State{b, 0n, e, 0n, q, ss}
+      clear(s)
 
 def release(+s: State, id: Nat, epoch: Nat) -> State:
   release.checked(matches(s, id, epoch), s)
@@ -188,4 +240,5 @@ def forget.sessions(xs: +List<Session>, +id: Nat) -> +List<Session>:
 
 def forget(s: State, +id: Nat) -> State:
   State{b, +h, e, u, q, ss} = s
-  State{b, Bool.pick(Nat, Nat.is_eq(h, id), 0n, h), e, u, remove(q, id), forget.sessions(ss, id)}
+  +next = {State{b, h, e, u, remove(q, id), forget.sessions(ss, id)} : State}
+  Bool.pick(State, Nat.is_eq(h, id), clear(next), next)

@@ -20,7 +20,7 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     report.checks.push('OS tray item has nonzero bounds');
   } else report.checks.push('Linux Tray created; desktop environment determines indicator visibility');
   assert.equal(getMenu().getMenuItemById('allow').enabled, true);
-  assert.equal(getMenu().getMenuItemById('pause'), null);
+  assert.equal(getMenu().getMenuItemById('pause').checked, true);
   assert.equal(getMenu().getMenuItemById('holder').enabled, false);
   assert.equal(getMenu().getMenuItemById('end-access').enabled, false);
   report.checks.push('Native Menu built with paused startup state');
@@ -52,9 +52,9 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
   await waitForState(snapshot => !snapshot.user_blocked, 'Allow agent access');
   if (nativeSelection) report.checks.push('Native Tray API opened the context menu and Accessibility pressed its owned Allow agent access item');
   assert.equal(host.coordinator.snapshot().availability, 'available');
-  assert.equal(getMenu().getMenuItemById('allow'), null);
+  assert.equal(getMenu().getMenuItemById('allow').checked, true);
   assert.equal(getMenu().getMenuItemById('pause').enabled, true);
-  for (const state of ['available', 'blocked', 'in_use']) await writeFile(join(out, `icon-${state}.png`), iconPng(state, 128));
+  for (const state of ['available', 'blocked', 'in_use', 'pausing']) await writeFile(join(out, `icon-${state}.png`), iconPng(state, 128));
   const a = await mcpClient(host.paths.root, 'tray-a'), b = await mcpClient(host.paths.root, 'tray-b');
   try {
     assert.equal((await tool(a.client, 'desktop_status')).data.instance_id, host.coordinator.instance);
@@ -116,7 +116,7 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     await select(getMenu().getMenuItemById('pause'));
     await waitForState(snapshot => snapshot.user_blocked, 'Pause agent access');
     assert.equal((await tool(b.client, 'desktop_status')).data.holder, null);
-    assert.equal(getMenu().getMenuItemById('pause'), null);
+    assert.equal(getMenu().getMenuItemById('pause').checked, true);
     assert.equal(getMenu().getMenuItemById('allow').enabled, true);
     assert.equal(getMenu().getMenuItemById('end-access').enabled, false);
     report.checks.push('Native pause action revokes the current access and shows paused state');
@@ -128,6 +128,38 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     await waitForState(snapshot => snapshot.holder?.session_id === one.session_id && !snapshot.user_blocked, 'End current access');
     assert.equal((await tool(b.client, 'desktop_status')).data.holder.session_id, one.session_id);
     report.checks.push('Native End current access hands off to the next waiter without pausing');
+    await tool(b.client, 'desktop_take');
+    const beforePending = host.coordinator.snapshot().lease;
+    await select(getMenu().getMenuItemById('pause-after'));
+    await waitForState(snapshot => snapshot.access_mode === 'pause_after', 'Pause after current access');
+    assert.equal(host.coordinator.snapshot().lease.token, beforePending.token);
+    assert.equal(host.coordinator.snapshot().lease.heartbeat_id, beforePending.heartbeat_id);
+    assert.ok(host.coordinator.snapshot().lease.remaining_ms <= beforePending.remaining_ms);
+    assert.equal(host.coordinator.snapshot().holder.session_id, one.session_id);
+    assert.match(getMenu().getMenuItemById('holder').label, /Pausing after/);
+    assert.equal(getMenu().getMenuItemById('pause-after').checked, true);
+    assert.equal(getMenu().getMenuItemById('pause').enabled, true);
+    await select(getMenu().getMenuItemById('allow'));
+    await waitForState(snapshot => snapshot.access_mode === 'allow', 'Allow cancels pending pause');
+    assert.equal(host.coordinator.snapshot().lease.token, beforePending.token);
+    assert.equal(host.coordinator.snapshot().lease.heartbeat_id, beforePending.heartbeat_id);
+    assert.ok(host.coordinator.snapshot().lease.remaining_ms <= beforePending.remaining_ms);
+    await select(getMenu().getMenuItemById('pause-after'));
+    await waitForState(snapshot => snapshot.access_mode === 'pause_after', 'Pause after current access');
+    const renewed = (await tool(a.client, 'desktop_heartbeat', { lease_token: beforePending.token })).data;
+    assert.equal(renewed.access_mode, 'pause_after');
+    await select(getMenu().getMenuItemById('end-access'));
+    await waitForState(snapshot => snapshot.access_mode === 'pause', 'End current access and pause');
+    assert.equal(host.coordinator.snapshot().holder, null);
+    assert.equal(host.coordinator.snapshot().queue[0].session_id, two.session_id);
+    report.checks.push('Native Pause after preserves the grant; Allow cancels without renewal; End pauses before the queued successor');
+    await select(getMenu().getMenuItemById('allow'));
+    await waitForState(snapshot => snapshot.holder?.session_id === two.session_id, 'Allow resumes the retained queue');
+    await select(getMenu().getMenuItemById('pause-after'));
+    await waitForState(snapshot => snapshot.access_mode === 'pause_after', 'Pause after current access');
+    await select(getMenu().getMenuItemById('pause'));
+    await waitForState(snapshot => snapshot.user_blocked, 'Immediate Pause overrides Pause after');
+    report.checks.push('Native immediate Pause remains available and revokes a pending holder');
     if (nativeSelection) {
       const close = execute(resolve('build/macos-menu'), [String(process.pid), 'Close', '--select-only'], { timeout: 5000 });
       const about = actions.about();

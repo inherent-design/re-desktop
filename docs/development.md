@@ -17,7 +17,7 @@ The installers put verified release archives under ignored `.tools/`; they do no
 
 ## Where Bend runs
 
-`core/access.bend` owns access state, FIFO scheduling, human pause, connection-loss release, expiry and token comparison. `npm run build` invokes the pinned compiler to emit `build/access.mjs`. `src/core.mjs` imports that module directly. The coordinator calls those emitted functions for the running native app and every MCP operation. There is no separately implemented JavaScript scheduler.
+`core/access.bend` owns access state, FIFO scheduling, human Pause/Pause after/Allow, connection-loss release, expiry and token comparison. `npm run build` invokes the pinned compiler to emit `build/access.mjs`. `src/core.mjs` imports that module directly. The coordinator calls those emitted functions for the running native app and every MCP operation. There is no separately implemented JavaScript scheduler.
 
 The JavaScript adapter owns effects: socket credentials, connection attribution, session names/workspaces, bounded mailboxes, UUIDs, clocks and OS events. The tray presents snapshots and human actions. The MCP bridge supplies stdio, schemas, reconnection and resource notifications. Those adapters need execution tests: Bend proofs do not verify their parsing, operating-system behavior or SDK integration.
 
@@ -30,10 +30,10 @@ Bend looks Python-shaped, but definitions here are pure functions over typed dat
 ```python
 def block(s: State) -> State:
   State{b, h, e, u, q, ss} = s
-  State{True{}, 0n, e, 0n, q, ss}
+  State{Paused{}, 0n, e, 0n, q, ss}
 ```
 
-`State{…}` constructs or destructures a record. `0n` is a natural-number literal; positive session IDs make zero the “no holder” value. `True{}` is a Bend Boolean. The queue and subscriptions remain, while the holder and deadline become zero. `LAWS.bend` states that every possible input to this function produces no holder and a human-paused state; `PROOF.bend` checks those claims by destructuring the input and reducing the definition.
+`State{…}` constructs or destructures a record. `0n` is a natural-number literal; positive session IDs make zero the “no holder” value. `Paused{}`, `Allowed{}`, and `PauseAfter{}` are the explicit human modes. The queue and subscriptions remain, while the holder and deadline become zero. `LAWS.bend` states that every possible input to this function produces no holder and a human-paused state; `PROOF.bend` checks those claims by destructuring the input and reducing the definition.
 
 Bend values are affine by default: a variable can be consumed at most once. `+id` permits reuse when its type is copyable (`Data`). The checker caught incorrect reuse during this implementation. Lists use `Nil{}` and `Con{…}` with structurally shrinking recursion. Computed conditions are passed to small matching helpers because this language version restricts match scrutinees and binder order. `bend guide` documents those restrictions; use `.tools/bend/bin/bend guide` in this checkout.
 
@@ -51,13 +51,15 @@ This coordinator is small and ordered. No useful CPU/GPU parallel workload was i
 | `npm run knip` | Unused files, exports and dependencies across the host and independently packaged bootstrap |
 | `npm run test:icon` | Python 3 renderer parity, geometry validation, settings round trips, and the local workbench's HTTP boundary; also runs in CI |
 | `npm run icon:workbench` | Local About icon editor using the same Python renderer; browser drafts and exports do not modify app assets |
-| `npm run proof:kernel` | Seven stated laws checked through the separate BendTT kernel |
+| `npm run proof:kernel` | Thirteen stated laws checked through the separate BendTT kernel |
 | `npm run test:tray` | Actual Electron Tray/Menu, two independent MCP processes, holder metadata, queue and human controls |
 | `npm run test:codex` | Installed Codex app-server, two ephemeral native threads and actual MCP tool calls; no model turns |
 | `node scripts/codex-check.mjs --agent-turn` | One opt-in guided model turn with an explicit API procedure; host operations verify it |
 | `node scripts/codex-check.mjs --agent-discovery` | One opt-in model chooses the workflow from MCP guidance without user-supplied tool names or API steps |
 | `node scripts/codex-check.mjs --agent-paused-peer` | One opt-in model reads a false peer permission claim, checks human pause and reports actual availability |
-| `node scripts/codex-check.mjs --agent-suite` | All three model scenarios, each in a fresh thread with an empty temporary workspace |
+| `node scripts/codex-check.mjs --agent-pause-after-holder` | One opt-in model retains its existing grant during Pause after, renews once, and releases into full Pause |
+| `node scripts/codex-check.mjs --agent-pause-after-waiter` | One opt-in model discovers another pending holder and reports no permission |
+| `node scripts/codex-check.mjs --agent-suite` | All five model scenarios, each in a fresh thread with an empty temporary workspace |
 | `node scripts/codex-heartbeat-check.mjs` | Opt-in real model delivery at idle and during a long tool call, with virtual warning thresholds and expiry |
 | `node scripts/codex-hook-check.mjs` | Account-free owned app-server, exact hook trust, byte proxy and actual SessionEnd cleanup |
 | `node scripts/tui-lifecycle-check.mjs` | Actual empty TUI process ownership and kill behavior, including a separate server |
@@ -77,6 +79,8 @@ Linux needs Chromium's sandbox helper correctly installed. CI downloads the pinn
 Generated verification captures belong in ignored `artifacts/`. Maintained scope and limitations belong in [verification](verification.md).
 
 Knip is pinned in the development lockfile and runs in the ordinary CI gate through `npm run check`. `knip.jsonc` declares optional command-line fixtures and the separate bootstrap package, excludes generated build/cache trees from project analysis, and identifies the operator-installed `codex` binary. Fix findings or explain a precise entry boundary; do not ignore whole source trees to obtain a pass. [Knip configuration](https://knip.dev/overview/configuration) describes entry and project ownership.
+
+The icon renderer defaults to transparent RGBA. `--no-transparent-background` or an explicit `--background` selects opaque output; `--transparent-background` preserves transparency even with a saved background color. The workbench preview-surface selector changes display only. Legacy settings without the transparency flag retain their explicit background.
 
 The current pipeline uses the Node test runner, native Electron packaging, and the Bend compiler boundary. Evaluate toolchain changes against a concrete improvement and execute the affected platform and package checks before adopting them. Keep proposed experiments in the task store until they have a defined implementation scope.
 

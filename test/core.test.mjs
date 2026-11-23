@@ -7,7 +7,7 @@ const setup = () => [1, 2, 3].reduce((s, id) => connected(s, id), A.initial(fals
 
 test('Bend JavaScript ABI preserves booleans, Nat, records, enum and lists', () => {
   const s = setup();
-  assert.equal(s.blocked, false);
+  assert.equal(A.blocked(s), false);
   assert.equal(A.light(s).$, 'Available');
   const next = A.take(s, 1, true, 0);
   assert.equal(next.holder, 1);
@@ -41,7 +41,7 @@ test('pause revokes a holder, retains waiters and prevents every subsequent gran
   assert.equal(s.holder, 0);
   s = A.advance(A.take(s, 3, true, 100), 100);
   assert.equal(s.holder, 0);
-  assert.equal(s.blocked, true);
+  assert.equal(A.blocked(s), true);
   assert.deepEqual(list(s.queue), [2, 3]);
   s = A.allow(s, 100);
   assert.equal(s.holder, 2);
@@ -107,7 +107,7 @@ test('seeded mixed lifecycle sequences preserve coordination invariants', () => 
     const id = 1 + random(3);
     now += random(300);
     s = A.advance(s, now);
-    switch (random(8)) {
+    switch (random(10)) {
       case 0: s = connected(s, id, now); break;
       case 1: s = A.take(s, id, true, now); break;
       case 2: s = A.release(s, id, s.epoch); break;
@@ -116,14 +116,17 @@ test('seeded mixed lifecycle sequences preserve coordination invariants', () => 
       case 5: s = A.allow(s, now); break;
       case 6: s = A.cancel(s, id); break;
       case 7: s = A.forget(s, id); break;
+      case 8: s = A.pause_after(s); break;
+      case 9: s = A.disconnect(s, id, now); break;
     }
     s = A.advance(s, now);
     const queue = list(s.queue), sessions = list(s.sessions);
     assert.equal(new Set(queue).size, queue.length);
     assert.ok(!queue.includes(s.holder));
-    assert.ok(!s.blocked || s.holder === 0);
+    assert.ok(!A.blocked(s) || s.holder === 0);
     assert.ok(s.holder === 0 || sessions.some(x => x.id === s.holder));
     assert.ok(queue.every(id => sessions.some(x => x.id === id)));
     assert.ok(s.holder === 0 || s.until > now);
+    assert.ok(s.mode.$ !== 'PauseAfter' || s.holder > 0);
   }
 });

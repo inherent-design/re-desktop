@@ -31,10 +31,10 @@ try {
   assert.equal((await client.client.listTools()).tools.length, 11);
   assert.equal((await tool(client.client, 'desktop_subscribe', { name: 'Admitted native archive', workspace: root })).data.user_blocked, true);
   const status = (await tool(client.client, 'desktop_runtime_status')).data;
-  assert.equal(status.agreement.shared_api, 2);
+  assert.equal(status.agreement.shared_api, 3);
   assert.equal(status.agreement.host_version, version);
   assert.ok(await store.prepare(version, { offline: true }));
-  const report = { version, source: identity.source, target: store.target, checks: ['Archive digest, safe extraction, complete tree and entry identities verified', 'Extracted bridge discovered eleven tools through external Node', 'Extracted bridge negotiated shared IPC 2 with a paused source host', 'Warm offline program tree reverified'], nativeHost: false };
+  const report = { version, source: identity.source, target: store.target, checks: ['Archive digest, safe extraction, complete tree and entry identities verified', 'Extracted bridge discovered eleven tools through external Node', 'Extracted bridge negotiated shared IPC 3 with a paused source host', 'Warm offline program tree reverified'], nativeHost: false };
   await mkdir('artifacts', { recursive: true });
   await writeFile('artifacts/archive-acceptance.json', JSON.stringify(report, null, 2) + '\n');
   console.log(`Archive admission passed (${report.checks.length} checks)`);

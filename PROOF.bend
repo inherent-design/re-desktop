@@ -26,3 +26,21 @@ def Laws.fifo_grant(h, e, now, t, ss):
 
 def Laws.heartbeat_renews(b, h, e, u, q, ss, now):
   {==}
+
+def Laws.pause_after_keeps_grant(m, h, e, u, q, ss):
+  {==}
+
+def Laws.pause_after_empty_pauses(m, e, u, q, ss):
+  {==}
+
+def Laws.pending_schedule_keeps_grant(h, e, u, q, ss, now):
+  {==}
+
+def Laws.pending_end_pauses(h, e, u, q, ss):
+  {==}
+
+def Laws.pending_release_pauses(h, e, u, q, ss):
+  {==}
+
+def Laws.allow_pending_keeps_grant(h, e, u, q, ss, now):
+  {==}

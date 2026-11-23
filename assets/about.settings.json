@@ -7,6 +7,7 @@
     "opacities": [0.2, 0.72, 1],
     "colors": ["#FF00FF", "#FFFF00", "#00FFFF"],
     "background": "#FFFFFF",
+    "transparent_background": true,
     "blend": "multiply",
     "magenta_fade": true,
     "magenta_core": 0.76,

@@ -1,6 +1,6 @@
 {
   "name": "re-desktop",
-  "version": "0.2.0-preview.5",
+  "version": "0.2.0-preview.6",
   "description": "Voluntary desktop access coordination for people and agents, with a native tray app and MCP server",
   "homepage": "https://github.com/inherent-design/re-desktop#readme",
   "repository": {

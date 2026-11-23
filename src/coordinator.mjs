@@ -90,6 +90,11 @@ export class Coordinator extends EventEmitter {
     this.state = value ? Access.block(this.state) : Access.allow(this.state, this.now());
     this.emit('change');
   }
+  pauseAfter() {
+    // Apply the human choice before expiry/scheduling can hand off an old grant.
+    this.state = Access.pause_after(this.state);
+    this.tick();
+  }
   endAccess() {
     this.tick();
     this.state = Access.release(this.state, this.state.holder, this.state.epoch);
@@ -117,8 +122,10 @@ export class Coordinator extends EventEmitter {
     const light = Access.light(state).$;
     return {
       instance_id: this.instance,
-      availability: { Available: 'available', Blocked: 'blocked', InUse: 'in_use' }[light],
-      user_blocked: state.blocked,
+      availability: { Available: 'available', Blocked: 'blocked', InUse: 'in_use', Pausing: 'pausing' }[light],
+      access_mode: { Paused: 'pause', Allowed: 'allow', PauseAfter: 'pause_after' }[state.mode.$],
+      grants_allowed: state.mode.$ === 'Allowed',
+      user_blocked: Access.blocked(state),
       holder: encode(this.sessions.get(state.holder)) ?? null,
       lease: state.holder ? { token: `${this.instance}:${state.epoch}`, remaining_ms: Math.max(0, state.until - this.now()), heartbeat_id: this.heartbeatId() } : null,
       queue: waiting.map(id => encode(this.sessions.get(id))),
