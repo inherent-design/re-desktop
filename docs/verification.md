@@ -1,30 +1,36 @@
 # Verification
 
-[Preview.5](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.5) was published from source `03c97a76d91c71e7b38f3739c0f9988edbfc57f8`. That exact source passed [dev CI](https://github.com/inherent-design/re-desktop/actions/runs/45113309446), [main CI](https://github.com/inherent-design/re-desktop/actions/runs/45113953370), and the complete [release pipeline](https://github.com/inherent-design/re-desktop/actions/runs/45114664829). The public npm package index exposes the exact version under `preview`; its SHA-512 integrity matches the bootstrap tarball verified against the release manifest and GitHub asset digest.
+[Preview.6](https://github.com/inherent-design/re-desktop/releases/tag/v0.2.0-preview.6) was published from source `bfed0b652a0c85689f298afc109e4ca95f7f3a19`. That exact source passed [dev CI](https://github.com/inherent-design/re-desktop/actions/runs/45137136241), [main CI](https://github.com/inherent-design/re-desktop/actions/runs/45137937519), and the complete [release pipeline](https://github.com/inherent-design/re-desktop/actions/runs/45138762729). The public npm package index exposes `@inherent.design/re-desktop@0.2.0-preview.6` under `preview`; its SHA-512 integrity matches the bootstrap tarball verified against the public release inventory.
 
-## Executed preview.5 checks
+## Executed preview.6 checks
 
 | Check | Observed scope |
 | --- | --- |
-| `npm run check` | Knip, primary Bend proof check, fresh emission, and 55 core, API, socket, cache, integration, and MCP regressions locally on Node 26 |
-| `npm run proof:kernel` | Seven stated laws checked through the independent BendTT/Lean kernel |
-| `npm run test:icon` | Eleven Python renderer, geometry, compositing, HTTP, settings round-trip, and legacy-import checks; the selected settings reproduce the checked-in PNG |
-| Local workbench browser check | Fifteen actual headless Chrome checks, including fade controls, undo/redo, draft recovery, comparison, import/export, and a 390 px layout |
-| `npm run test:tray` | Nine local macOS checks, including actual owned Accessibility actions, literal Unicode/ampersands, exact session-ID copying, Pause/Allow, End handoff without pausing, and About opening (dismissal was user-assisted; see correction below) |
-| `node scripts/packaged-check.mjs` | Six local macOS checks against the native packaged app, including ASAR loading, Allow/Pause, handoff, and Quit |
-| `node scripts/archive-check.mjs` | Published-format archive digest, extraction/tree admission, external Node bridge discovery, common API negotiation, and warm offline verification |
-| `node scripts/installed-check.mjs --cli <installed-entry>` | Seven checks against the published package: concurrent first subscriptions share one paused native host, native controls work, bridge termination hands off access, Quit prevents agent respawn, operator restart returns a paused host, and offline reuse verifies |
-| `node scripts/codex-check.mjs --agent-suite --entry <installed-entry> --entry-arg mcp` | Codex 0.171.0 protocol calls plus three real model scenarios: guided usage, workflow discovery, and a false peer permission claim while paused |
+| `npm run check` | Knip, primary Bend proof check, fresh emission, build, and 71 core, API, socket, cache, integration, and MCP regressions locally on Node 26 |
+| `npm run proof:kernel` | Thirteen stated laws checked through the independent BendTT/Lean kernel |
+| `npm run test:icon` | Fifteen Python renderer, geometry, RGBA compositing, rounded-corner alpha, HTTP, settings round-trip, and legacy-import checks; the selected settings reproduce the checked-in PNG |
+| Local workbench browser check | Sixteen actual headless Chrome checks, including rounded-white/optional transparent output, display-only surfaces, undo/redo, drafts, comparison, import/export, and a 390 px layout |
+| `npm run test:tray` | Eleven local macOS checks with owned Accessibility actions: literal Unicode/ampersands, exact session-ID copying, Pause/Allow, ordinary End handoff, Pause after preservation/cancellation/final Pause, immediate override, and separately timed About dismissal |
+| `node scripts/packaged-check.mjs` | Seven local macOS checks against the native packaged app, including ASAR loading, pending-holder renewal, release into Pause, ordinary handoff, and Quit |
+| `node scripts/archive-check.mjs` | Four checks covering archive digest/tree admission, external Node bridge discovery, IPC 3 negotiation, and warm offline verification |
+| `node scripts/installed-check.mjs --cli <installed-entry>` | Nine checks against the public release: shared paused startup, pending renewal/cancellation, bridge termination/handoff, release into Pause, Quit protection, operator restart, and offline reuse |
+| `node scripts/codex-check.mjs --agent-suite --entry <installed-entry> --entry-arg mcp` | Eight checks through Codex 0.171.0, including five real model scenarios: guided usage, discovery, false peer permission while paused, pending-holder renewal/release, and refusal when another session holds a pending grant |
 | `node scripts/codex-heartbeat-check.mjs --entry <installed-entry> --entry-arg mcp` | Six checks with real Codex/model delivery: idle 3-minute notice, 1-minute notice during an eight-second tool call, no renewal by delivery, virtual-clock expiry, and bounded cleanup |
 | `node scripts/codex-hook-check.mjs` | Five account-free checks against a real owned Codex app-server: exact native hook trust, preserved unrelated trust, official byte proxy, SessionEnd cleanup, and selective hook removal |
 
 The public bootstrap and native bundle were also installed into an owned recipient environment with npm/GitHub publishing credentials removed. Anonymous cold setup and offline reuse passed. Release inventory verification covered all eleven assets, all three target sidecars, compiled-core provenance, API declarations, source identity, and checksums. The packaged About PNG matched the approved generated bytes; the native package excludes the development workbench, settings source, and private captures.
 
+The first public native run failed because the initial Allow menu item had no actionable bounds. A retained local harness added only a two-second initial tray settle; all nine unchanged behavioral assertions then passed. This qualifies the settled startup path, not reliable immediate automation at first paint.
+
+The selected artwork uses a white rounded-square tile with transparent antialiased corners, with a 14-unit radius on a 64-unit canvas. Comparison with the approved preview.5 image found no RGB differences across 1,004,808 fully opaque pixels; the final image has 1,356 partial-alpha boundary pixels. Actual browser exports were inspected on dark and blue surfaces. The selected PNG SHA-256 is `b2ae380d13ddd10a616239c6a3f41aabe4f66d89a0779ec9baf19ae6e4bbf279`; public `release.json` is `c72559d8b851a34ec1725c39299b151a3a46f99b244b0fab45fdcd736efd61c6`. Checksums establish the inspected bytes and same-origin integrity, not independent publisher signing.
+
 ## Local installation and Codex scope
 
-The global mise selection is `@inherent.design/re-desktop@0.2.0-preview.5`. The running macOS host was upgraded to that published source. The stable mise MCP launcher was preserved, cleanup hooks were updated to the installed preview, and native exact-hash trust succeeded. Fingerprints of unrelated configuration and hook groups matched before and after installation.
+The global mise selection is `@inherent.design/re-desktop@0.2.0-preview.6`. Cold setup admitted its exact published native generation. The new bootstrap refused the running IPC 2 host before mutation. At an idle boundary, the prior host exited gracefully and preview.6 started paused with a new PID and instance. The stable mise MCP launcher was preserved, cleanup hooks were updated, and native exact-hash trust succeeded. Fingerprints of unrelated configuration and hook groups matched before and after installation.
 
-The managed Codex daemon was restarted through its supported management command and retained version 0.171.0. The native host retained its PID and instance across that daemon restart. Fresh thread-scoped MCP status reported `connected`, version `0.2.0-preview.5`, eleven tools, and one resource. Actual runtime/status/subscription calls negotiated agent API 1.2.0, host API 1.1.0, and shared IPC 2. A paused take remained ungranted and unqueued. A fresh subscription created a private thread binding; unsubscribe removed it. The host starts paused, and only the person can Allow.
+The managed Codex daemon retained its PID and version 0.171.0. An isolated two-thread check established that a targeted server disable/re-enable and reload refreshes loaded MCP clients while preserving an already submitted tool result. The owner then refreshed only `re_desktop` and restored its original configuration. The actual configured connection reported `connected`, preview.6, eleven tools, and one resource. Actual runtime/status calls negotiated agent API 2.0.0, host API 2.0.0, shared IPC 3, and the required `pause-after` capability. A full daemon restart was unnecessary; other servers and peer work were preserved.
+
+The owner-authorized native Allow action restored access after startup. Final actual MCP status reported Allow, no holder or queue, and no remaining verifying-session subscription. Unsubscribe removed its private thread binding. A final configured-root Pause-after menu attempt did not establish a transition; the separately successful source, packaged, and public recipient native tests above provide that feature evidence. Reconnect readiness alone is not a repeated native lifecycle test.
 
 Model checks are opt-in and excluded from credential-free CI. They used the configured Codex account in owned temporary threads and workspaces. Warning delivery used virtual time for thresholds and real Codex/model execution; it does not establish every model's behavior during prolonged reasoning or every client's delivery semantics.
 
@@ -32,21 +38,23 @@ Raw MCP discovery retains the complete server workflow and concise individual to
 
 ## Earlier heartbeat and lifecycle evidence
 
-[Preview.4's immutable verification record](https://github.com/inherent-design/re-desktop/blob/v0.2.0-preview.4/docs/verification.md) retains the earlier wall-clock and lifecycle checks. Its connected bridge lost access after 900,002 ms without agent renewal, with warnings at 179,908 and 59,833 ms remaining. Extended installed-entry fixtures exercised delivery during active reasoning and actual model-created child cleanup through SubagentStop. Those extended fixtures were not repeated for preview.5's artwork and menu changes.
+[Preview.5's immutable verification record](https://github.com/inherent-design/re-desktop/blob/v0.2.0-preview.5/docs/verification.md) retains its earlier delivery checks; its uncertain About observations are qualified below. [Preview.4's record](https://github.com/inherent-design/re-desktop/blob/v0.2.0-preview.4/docs/verification.md) retains wall-clock and lifecycle checks. Its connected bridge lost access after 900,002 ms without renewal, with warnings at 179,908 and 59,833 ms remaining. Extended reasoning and actual model-created SubagentStop fixtures were not repeated for preview.6.
 
 The earlier Codex 0.171.0 TUI fixtures observed disconnection after killing ordinary local and `--no-daemon` TUIs, while a test-owned remote app-server retained its MCP connection throughout a 3,061 ms observation. These results establish why transport loss alone cannot replace the heartbeat; they do not establish every backend or active-turn cancellation behavior. Hard kills cannot run graceful hooks. [Desktop behavior](product.md#bridge-lifetime) owns the lifecycle contract.
 
 Deterministic tests continue to separate transport presence from explicit renewal, invalidate stale warning generations, permit longer work through renewal, and fence stale epochs and cleanup capabilities. Invalid host results fail live SDK output validation. Cache tests cover corruption, concurrent and interrupted acquisition, killed writers, unsafe archive members, and resolved links.
 
+Pending-pause regressions exercise every terminal-holder path, retained waiters, renewal, API mismatch rejection, and no transient handoff. The related external rules model was inspected as a narrow holder/epoch/deadline projection; no external source pins were advanced. Its historical 30,100 versus 900,100 renewal counterexample remains distinct from the accepted 15-minute rule.
+
 ## Platform and release limits
 
 Hosted macOS arm64, Windows x64, and Linux x64 qualification passed, including native callbacks, clipboard copying, ASAR, packaging, archive admission, and the external Node bridge. Node 24 compatibility also passed. Local interactive native checks ran on macOS. Interactive Windows menu selection and physical Linux indicator visibility remain untested. Linux Xvfb checks use Chromium's sandbox helper with correct ownership; the bootstrap does not disable it. Unix symlink tests have documented Windows skips.
 
-Local native checks used the current macOS appearance. A full light/dark/high-contrast matrix and a reliable native About screenshot were not obtained. About opened and the packaged image identity was checked, but automatic versus person-assisted dismissal was not independently established. Earlier successful reports do not establish automated About dismissal.
+Local native checks used the current macOS appearance. A full native light/dark/high-contrast matrix and reliable native About screenshot were not obtained. Dark/blue browser previews, RGBA indicators, exact packaged artwork, native decoding, and actual About opening/dismissal cover narrower observations. Colors also have text labels; these checks do not establish universal contrast compliance.
 
 The release remains unsigned. Signing, notarization, platform installers, additional architectures, and automatic channels need separate implementation and evidence. Windows Codex warning transport uses the official byte proxy, exercised against a real app-server on macOS; execution with a Windows Codex installation remains untested.
 
-Security gates passed for the selected preview.5 source. Scheduled scans publish redacted summaries and SARIF. Renovate targets dev with automerge disabled. Scanner results qualify their source and database snapshot, rather than establishing the absence of every embedded Chromium vulnerability.
+Security gates passed for the selected preview.6 source. Scheduled scans publish redacted summaries and SARIF. Renovate targets dev with automerge disabled. Scanner results qualify their source and database snapshot, rather than establishing the absence of every embedded Chromium vulnerability.
 
 Generated logs and receipts remain in ignored `artifacts/`. [Development](development.md) lists reproducible commands; [distribution](distribution.md) owns release, API, cache, and trust contracts.
 
