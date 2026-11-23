@@ -67,9 +67,11 @@ def normalize_settings(value):
         value.setdefault('magenta_fade', False)
         value.setdefault('magenta_core', 0)
         value.setdefault('transparent_background', False)
+        value.setdefault('background_corner_radius', 0)
     elif 'background' in value and 'transparent_background' not in value:
         # A legacy raw settings document with an explicit background is opaque.
         value['transparent_background'] = False
+        value.setdefault('background_corner_radius', 0)
     if 'bottom_gap' in value:
         gaps = [value.pop('bottom_gap')] * 2
         if 'bottom_gaps' in value and value['bottom_gaps'] != gaps:
@@ -88,6 +90,7 @@ def normalize_settings(value):
     for field in ['canvas_units', 'dot_diameter', 'dot_gap', 'dot_angle', 'stripe_width', 'stripe_gap', 'stripe_angle', 'stripe_phase', 'cyan_core', 'magenta_core']:
         number(settings[field], field)
     number(settings['canvas_units'], 'canvas_units', 8, 512)
+    number(settings['background_corner_radius'], 'background_corner_radius', 0, settings['canvas_units'] / 2)
     diameters = settings['diameters']
     if not settings['canvas_units'] >= diameters[0] > diameters[1] > diameters[2] > 0:
         raise SettingsError('diameters', 'Use three decreasing positive diameters that fit inside the canvas.')
@@ -205,4 +208,19 @@ def render(size, settings):
             encoded = [round(255 * clamp(c / coverage)) for c in pixel] if coverage else [0, 0, 0]
             offset = (py * size + px) * 4
             rgba[offset:offset + 4] = bytes([*encoded, round(255 * coverage)])
+    if not transparent and settings['background_corner_radius'] > 0:
+        # Clip the whole white tile with a rounded-rectangle signed distance.
+        # Half-canvas radius gives a circular silhouette.
+        corner = settings['background_corner_radius']
+        half = settings['canvas_units'] / 2
+        for py in range(size):
+            for px in range(size):
+                qx = abs((px + .5) * unit_per_pixel - half) - (half - corner)
+                qy = abs((py + .5) * unit_per_pixel - half) - (half - corner)
+                distance = math.hypot(max(qx, 0), max(qy, 0)) + min(max(qx, qy), 0) - corner
+                coverage = clamp(.5 - distance * scale)
+                offset = (py * size + px) * 4
+                rgba[offset + 3] = round(rgba[offset + 3] * coverage)
+                if rgba[offset + 3] == 0:
+                    rgba[offset:offset + 3] = b'\x00\x00\x00'
     return png_bytes(size, rgba)

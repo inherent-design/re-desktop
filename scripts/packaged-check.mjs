@@ -57,6 +57,10 @@ try {
   await tool(a.client, 'desktop_take');
   if (native) await execute(resolve('build/macos-menu'), [String(app.pid), 'Pause after current access'], { timeout: 5000 });
   else host.coordinator.pauseAfter();
+  for (let attempt = 0; attempt < 80; attempt++) {
+    if ((await tool(b.client, 'desktop_status')).data.access_mode === 'pause_after') break;
+    await delay(50);
+  }
   const pending = (await tool(b.client, 'desktop_status')).data;
   assert.equal(pending.access_mode, 'pause_after');
   assert.equal(pending.grants_allowed, false);
@@ -69,6 +73,10 @@ try {
   report.checks.push('Packaged Pause after keeps holder renewal valid and ends in Pause without handing off');
   if (native) await execute(resolve('build/macos-menu'), [String(app.pid), 'Allow agent access'], { timeout: 5000 });
   else host.coordinator.setBlocked(false);
+  for (let attempt = 0; attempt < 80; attempt++) {
+    if ((await tool(a.client, 'desktop_status')).data.holder?.session_id === one.session_id) break;
+    await delay(50);
+  }
   assert.equal((await tool(a.client, 'desktop_status')).data.holder.session_id, one.session_id);
   if (native) {
     await execute(resolve('build/macos-menu'), [String(app.pid), 'Pause agent access'], { timeout: 5000 });

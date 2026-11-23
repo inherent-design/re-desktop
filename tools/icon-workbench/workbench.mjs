@@ -187,6 +187,8 @@ function buildControls() {
     transparent.addEventListener('change', () => { state.settings.transparent_background = transparent.checked; changed(); buildControls(); });
     $('#controls').append(transparency);
     colorField('background', 'Opaque background color');
+    const corners = numberField('background_corner_radius', 'Background corner radius', 0, state.settings.canvas_units / 2, .5, 'u', '0 makes a square; half the canvas size makes a circle. Edges are antialiased.');
+    corners.querySelectorAll('input').forEach(input => { input.disabled = state.settings.transparent_background; });
     $$('[data-path="background"]').forEach(input => input.closest('.field').querySelectorAll('input').forEach(control => { control.disabled = state.settings.transparent_background; }));
     const field = document.createElement('div'); field.className = 'field';
     field.innerHTML = '<label for="blend">Ink blending</label><select id="blend"><option value="multiply">Multiply</option><option value="normal">Normal</option></select><p class="caption">Multiply makes cyan over yellow appear green.</p>';

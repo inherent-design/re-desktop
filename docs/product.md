@@ -23,7 +23,7 @@ The menu lists session names and a queue numbered from one. Each entry shows its
 
 About explains access controls, check-ins, Quit, and indicator colors before support versions. Quit removes the indicator, closes its service, and records a deliberate-stop choice for this profile. Agent preparation cannot clear that choice; an explicit native open or operator `re-desktop start` can. Screen lock or system suspend pauses access; returning does not automatically allow it.
 
-The About mark uses transparent RGBA artwork, including antialiased ink and fade coverage; its white preview surface is not part of the asset. The generator and workbench share compositing and settings. The workbench can preview checkerboard, light, dark, and blue surfaces without including them in PNG exports, and can explicitly export an opaque background. Legacy settings with an explicit background retain their opaque appearance.
+The About mark sits on a white rounded-square tile. Its antialiased corners are transparent outside the tile; the ink colors and fades retain their reviewed white backdrop. The generator and workbench share RGBA compositing and settings. Background corner radius is adjustable from square to circular; the selected radius is 14 units on the 64-unit canvas. Checkerboard, light, dark, and blue preview surfaces are display-only. Fully transparent artwork remains an explicit workbench option. Legacy settings without a corner radius retain their square background.
 
 ## Sessions and access
 

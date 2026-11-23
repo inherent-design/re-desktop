@@ -10,7 +10,7 @@
 | `npm run proof:kernel` | Seven stated laws checked through the independent BendTT/Lean kernel |
 | `npm run test:icon` | Eleven Python renderer, geometry, compositing, HTTP, settings round-trip, and legacy-import checks; the selected settings reproduce the checked-in PNG |
 | Local workbench browser check | Fifteen actual headless Chrome checks, including fade controls, undo/redo, draft recovery, comparison, import/export, and a 390 px layout |
-| `npm run test:tray` | Nine local macOS checks, including actual owned Accessibility actions, literal Unicode/ampersands, exact session-ID copying, Pause/Allow, End handoff without pausing, and About execution |
+| `npm run test:tray` | Nine local macOS checks, including actual owned Accessibility actions, literal Unicode/ampersands, exact session-ID copying, Pause/Allow, End handoff without pausing, and About opening (dismissal was user-assisted; see correction below) |
 | `node scripts/packaged-check.mjs` | Six local macOS checks against the native packaged app, including ASAR loading, Allow/Pause, handoff, and Quit |
 | `node scripts/archive-check.mjs` | Published-format archive digest, extraction/tree admission, external Node bridge discovery, common API negotiation, and warm offline verification |
 | `node scripts/installed-check.mjs --cli <installed-entry>` | Seven checks against the published package: concurrent first subscriptions share one paused native host, native controls work, bridge termination hands off access, Quit prevents agent respawn, operator restart returns a paused host, and offline reuse verifies |
@@ -42,10 +42,16 @@ Deterministic tests continue to separate transport presence from explicit renewa
 
 Hosted macOS arm64, Windows x64, and Linux x64 qualification passed, including native callbacks, clipboard copying, ASAR, packaging, archive admission, and the external Node bridge. Node 24 compatibility also passed. Local interactive native checks ran on macOS. Interactive Windows menu selection and physical Linux indicator visibility remain untested. Linux Xvfb checks use Chromium's sandbox helper with correct ownership; the bootstrap does not disable it. Unix symlink tests have documented Windows skips.
 
-Local native checks used the current macOS appearance. A full light/dark/high-contrast matrix and a native About screenshot were not obtained; About execution and the packaged image identity were verified separately.
+Local native checks used the current macOS appearance. A full light/dark/high-contrast matrix and a reliable native About screenshot were not obtained. About opened and the packaged image identity was checked, but automatic versus person-assisted dismissal was not independently established. Earlier successful reports do not establish automated About dismissal.
 
 The release remains unsigned. Signing, notarization, platform installers, additional architectures, and automatic channels need separate implementation and evidence. Windows Codex warning transport uses the official byte proxy, exercised against a real app-server on macOS; execution with a Windows Codex installation remains untested.
 
 Security gates passed for the selected preview.5 source. Scheduled scans publish redacted summaries and SARIF. Renovate targets dev with automerge disabled. Scanner results qualify their source and database snapshot, rather than establishing the absence of every embedded Chromium vulnerability.
 
 Generated logs and receipts remain in ignored `artifacts/`. [Development](development.md) lists reproducible commands; [distribution](distribution.md) owns release, API, cache, and trust contracts.
+
+## About automation correction
+
+The owner observed About dialogs left open during earlier local runs and manually dismissed them. Whether delayed automation would eventually have closed those dialogs was not established. Accessibility results and a completed fixture alone therefore do not establish automated dismissal. Later source inspection found programmed screenshot-discovery/capture waits before dismissal, up to roughly 26 seconds in the native capture experiment. These runs do not establish an Apple automation limitation. The isolated timing check and optional attended review are documented in [development](development.md). Automated tray-menu checks remain independently supported by observed host state changes.
+
+A subsequent isolated local run started Close immediately, traversed the owned application's AXWindows, and received `AXPress` success plus the dialog result after 207 ms. No screenshot work preceded dismissal. That run establishes successful automated dismissal in the observed environment; it does not retroactively establish which actor closed earlier dialogs.

@@ -14,7 +14,7 @@ def main():
     parser.add_argument('--settings', type=Path, help='exported workbench settings; defaults to assets/about.settings.json')
     parser.add_argument('--size', type=int, default=1024)
     parser.add_argument('--metadata', type=Path)
-    for name in ['canvas-units', 'dot-diameter', 'dot-gap', 'dot-angle', 'stripe-width', 'stripe-gap', 'stripe-angle', 'stripe-phase', 'cyan-core', 'magenta-core']:
+    for name in ['canvas-units', 'background-corner-radius', 'dot-diameter', 'dot-gap', 'dot-angle', 'stripe-width', 'stripe-gap', 'stripe-angle', 'stripe-phase', 'cyan-core', 'magenta-core']:
         parser.add_argument('--' + name, type=float)
     parser.add_argument('--magenta-fade', action=argparse.BooleanOptionalAction, default=None)
     for name, count in [('diameters', 3), ('opacities', 3), ('bottom-gaps', 2), ('dot-phase', 2)]:

@@ -160,12 +160,27 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     await select(getMenu().getMenuItemById('pause'));
     await waitForState(snapshot => snapshot.user_blocked, 'Immediate Pause overrides Pause after');
     report.checks.push('Native immediate Pause remains available and revokes a pending holder');
-    if (nativeSelection) {
+    if (process.env.RE_DESKTOP_MANUAL_ABOUT === '1') {
+      console.log('Manual About review: inspect the artwork and text, then close the dialog.');
+      assert.equal((await actions.about()).response, 0);
+      report.about = { mode: 'manual', performed: true, dismissal: 'person' };
+      report.checks.push('Person reviewed and dismissed the native About dialog');
+    } else if (nativeSelection) {
+      // Dismiss immediately. Screenshot discovery/capture must not precede Close.
+      const started = performance.now();
       const close = execute(resolve('build/macos-menu'), [String(process.pid), 'Close', '--select-only'], { timeout: 5000 });
       const about = actions.about();
-      await close;
-      assert.equal((await about).response, 0);
-      report.checks.push('Native About dialog opens and its owned Close button dismisses it');
+      let deadline;
+      try {
+        const native = await close;
+        const pressedMs = performance.now() - started;
+        const result = await Promise.race([about, new Promise((_, reject) => { deadline = setTimeout(() => reject(new Error('About did not dismiss within two seconds after AXPress')), 2000); })]);
+        assert.equal(result.response, 0);
+        report.about = { mode: 'automated', performed: true, nativeResult: native.stdout.trim(), pressMs: Math.round(pressedMs), dismissedMs: Math.round(performance.now() - started), screenshotBeforeClose: false };
+        report.checks.push('Native About opens and its owned Close action resolves the dialog with measured timing');
+      } finally { clearTimeout(deadline); }
+    } else {
+      report.about = { mode: 'unverified', performed: false, reason: 'Owned native Accessibility input is unavailable; no About dismissal claim.' };
     }
     actions.pause();
     await delay(20);

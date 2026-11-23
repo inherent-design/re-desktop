@@ -116,7 +116,7 @@ class ArtworkTests(unittest.TestCase):
             {'unknown': 1}, {'dot_phase': [0]},
             {'formatVersion': True, 'settings': {}},
             {'magenta_fade': 'yes'}, {'magenta_core': 1},
-            {'transparent_background': 'yes'},
+            {'transparent_background': 'yes'}, {'background_corner_radius': True}, {'background_corner_radius': 33},
         ]
         for settings in invalid:
             with self.subTest(settings=settings), self.assertRaises(SettingsError):
@@ -143,9 +143,24 @@ class ArtworkTests(unittest.TestCase):
         self.assertGreater(rgba(88, 64)[3], rgba(112, 64)[3])
         self.assertLess(rgba(112, 64)[3], 15)
 
+    def test_white_tile_has_smooth_transparent_corners_and_an_opaque_interior(self):
+        ink = dict(DEFAULT_SETTINGS, opacities=[0, 0, 0])
+        self.assertFalse(ink['transparent_background'])
+        for size in [32, 64, 128]:
+            _, rgba = pixels(render(size, ink), alpha=True)
+            self.assertEqual(rgba(0, 0), (0, 0, 0, 0))
+            self.assertEqual(rgba(size // 2, size // 2), (255, 255, 255, 255))
+            edge = [rgba(x, y) for y in range(size) for x in range(size) if 0 < rgba(x, y)[3] < 255]
+            self.assertTrue(edge)
+            self.assertTrue(all(pixel[:3] == (255, 255, 255) for pixel in edge))
+        _, square = pixels(render(32, dict(ink, background_corner_radius=0)), alpha=True)
+        self.assertEqual(square(0, 0), (255, 255, 255, 255))
+        self.assertEqual(normalize_settings({'formatVersion': 1, 'settings': {}})['background_corner_radius'], 0)
+
     def test_legacy_backgrounds_stay_opaque_and_new_transparency_round_trips(self):
         legacy = dict(DEFAULT_SETTINGS)
         legacy.pop('transparent_background')
+        legacy.pop('background_corner_radius')
         for document in [legacy, {'formatVersion': 1, 'settings': legacy}]:
             restored = normalize_settings(document)
             self.assertFalse(restored['transparent_background'])
@@ -153,7 +168,7 @@ class ArtworkTests(unittest.TestCase):
             self.assertEqual(rgba(0, 0), (255, 255, 255, 255))
         exported = {'formatVersion': 1, 'settings': DEFAULT_SETTINGS}
         self.assertEqual(normalize_settings(exported), DEFAULT_SETTINGS)
-        self.assertTrue(normalize_settings({})['transparent_background'])
+        self.assertFalse(normalize_settings({})['transparent_background'])
 
 
 class ServerTests(unittest.TestCase):

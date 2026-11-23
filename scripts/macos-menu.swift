@@ -12,7 +12,12 @@ func attr(_ element: AXUIElement, _ key: String) -> CFTypeRef? {
   return AXUIElementCopyAttributeValue(element, key as CFString, &value) == .success ? value : nil
 }
 func children(_ element: AXUIElement) -> [AXUIElement] {
-  return attr(element, kAXChildrenAttribute) as? [AXUIElement] ?? []
+  let direct = attr(element, kAXChildrenAttribute) as? [AXUIElement] ?? []
+  // Native dialogs may be exposed through AXWindows rather than AXChildren.
+  if (attr(element, kAXRoleAttribute) as? String) == (kAXApplicationRole as String) {
+    return direct + (attr(element, kAXWindowsAttribute) as? [AXUIElement] ?? [])
+  }
+  return direct
 }
 func find(_ element: AXUIElement, _ title: String, _ depth: Int = 0) -> AXUIElement? {
   if (attr(element, kAXTitleAttribute) as? String) == title { return element }
