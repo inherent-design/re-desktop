@@ -96,6 +96,17 @@ class ArtworkTests(unittest.TestCase):
         self.assertEqual(render(64, dict(settings, magenta_fade=False, magenta_core=0)),
                          render(64, dict(settings, magenta_fade=False, magenta_core=.8)))
 
+    def test_earlier_exports_keep_their_original_unfaded_appearance(self):
+        legacy = deepcopy(DEFAULT_SETTINGS)
+        legacy.pop('magenta_fade')
+        legacy.pop('magenta_core')
+        document = {'formatVersion': 1, 'settings': legacy}
+        restored = normalize_settings(document)
+        self.assertIs(restored['magenta_fade'], False)
+        self.assertEqual(restored['magenta_core'], 0)
+        self.assertNotIn('magenta_fade', document['settings'])
+        self.assertEqual(render(128, restored), render(128, dict(DEFAULT_SETTINGS, magenta_fade=False, magenta_core=0)))
+
     def test_invalid_inputs_are_rejected_without_mutating_defaults(self):
         before = deepcopy(DEFAULT_SETTINGS)
         invalid = [

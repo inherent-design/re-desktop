@@ -53,13 +53,19 @@ def layout(canvas_units, diameters, bottom_gaps):
 def normalize_settings(value):
     if not isinstance(value, dict):
         raise SettingsError('settings', 'Settings must be a JSON object.')
-    if 'settings' in value:
+    exported = 'settings' in value
+    if exported:
         if 'formatVersion' in value and (type(value['formatVersion']) is not int or value['formatVersion'] != 1):
             raise SettingsError('settings', 'This settings format is not supported. Use formatVersion 1.')
         value = value['settings']
         if not isinstance(value, dict):
             raise SettingsError('settings', 'Settings must be a JSON object.')
     value = deepcopy(value)
+    if exported:
+        # Earlier complete exports predate this optional effect. Their appearance
+        # must not change when the project's new starting values enable it.
+        value.setdefault('magenta_fade', False)
+        value.setdefault('magenta_core', 0)
     if 'bottom_gap' in value:
         gaps = [value.pop('bottom_gap')] * 2
         if 'bottom_gaps' in value and value['bottom_gaps'] != gaps:
