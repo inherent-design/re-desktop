@@ -21,6 +21,8 @@ Exercise the actual boundary changed: sockets and SDK stdio for transport, nativ
 
 ## Changes and documentation
 
+The About icon is generated with Python 3's standard library. Run `npm run icon:workbench` and open its local URL to adjust it. The workbench uses Create: Skyweave Atlas's tokens and panel patterns, with a shared renderer in `scripts/icon_artwork.py`. Browser drafts, comparison references, and preview visibility do not change the app. Export the preferred JSON, review it, and save the selected values in `assets/about.settings.json`. Regenerate the checked-in PNG with `python3 scripts/generate-about-icon.py assets/about.png`; `--settings path/to/export.json` can render an exported draft separately. Run `npm run test:icon` after generator or workbench-server changes. Review the full-size output and the actual native About dialog before publishing an artwork change; the package allowlist includes only the PNG. The tray availability indicators have a separate owner in `src/icon.mjs`.
+
 Keep changes focused, preserve unrelated work, and retain a reproduction for a corrected defect where practical. Do not duplicate Bend's scheduler in an adapter or weaken a test to obtain a pass. Describe the problem, resulting behavior, executed checks, and material limitations in the pull request.
 
 Use complete, direct prose and one owner for each contract. README owns getting started; reference documents own detailed behavior. Keep proposed or accepted future commands separate from released interfaces. Put run-specific evidence in CI, pull requests, or the task store, rather than adding competing delivery logs to the repository. Never commit credentials, private diagnostics, personal store identifiers, or machine-specific setup.

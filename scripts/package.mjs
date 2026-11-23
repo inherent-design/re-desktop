@@ -13,7 +13,7 @@ const stage = join(out, 'stage');
 await rm(stage, { recursive: true, force: true });
 await mkdir(stage, { recursive: true });
 // A production allowlist keeps development scripts and private evidence out.
-for (const path of ['src', 'core', 'build/access.mjs', 'build/provenance.json', 'api.json', 'LICENSE', 'licenses', 'THIRD_PARTY_NOTICES.md', 'package.json', 'package-lock.json']) {
+for (const path of ['src', 'core', 'assets/about.png', 'build/access.mjs', 'build/provenance.json', 'api.json', 'LICENSE', 'licenses', 'THIRD_PARTY_NOTICES.md', 'package.json', 'package-lock.json']) {
   await cp(path, join(stage, path), { recursive: true });
 }
 for (const file of ['profile.mjs', 'integration.mjs']) await cp(join('bootstrap/lib', file), join(stage, 'bootstrap/lib', file), { recursive: true });

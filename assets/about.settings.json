@@ -1,0 +1,21 @@
+{
+  "formatVersion": 1,
+  "settings": {
+    "canvas_units": 64,
+    "diameters": [42, 28, 20],
+    "bottom_gaps": [6, 6],
+    "opacities": [0.32, 0.72, 0.88],
+    "colors": ["#FF00FF", "#FFFF00", "#00FFFF"],
+    "background": "#FFFFFF",
+    "blend": "multiply",
+    "dot_diameter": 4,
+    "dot_gap": 6,
+    "dot_angle": 0,
+    "dot_phase": [0, 0],
+    "stripe_width": 6,
+    "stripe_gap": 6,
+    "stripe_angle": -33,
+    "stripe_phase": 0,
+    "cyan_core": 0.15
+  }
+}

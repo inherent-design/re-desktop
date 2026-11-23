@@ -1,6 +1,6 @@
 {
   "name": "re-desktop",
-  "version": "0.2.0-preview.4",
+  "version": "0.2.0-preview.5",
   "description": "Voluntary desktop access coordination for people and agents, with a native tray app and MCP server",
   "homepage": "https://github.com/inherent-design/re-desktop#readme",
   "repository": {
@@ -27,6 +27,8 @@
     "check:build": "node scripts/check-build.mjs",
     "test": "node --test",
     "check": "npm run knip && npm run proof && npm run build && npm test",
+    "icon:workbench": "python3 scripts/icon-workbench.py",
+    "test:icon": "python3 -m unittest discover -s tools/icon-workbench -p 'test_*.py'",
     "knip": "knip --no-progress",
     "start": "electron .",
     "mcp": "node src/mcp.mjs",

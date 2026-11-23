@@ -139,3 +139,33 @@ test('direct MCP startup accepts an alternate filesystem spelling of the entry p
   t.after(async () => { await client.client.close(); await rm(root, { recursive: true, force: true }); });
   assert.equal((await client.client.listTools()).tools.length, 11);
 });
+
+test('duplicate Unicode names retain distinct identities and messaging a departed recipient creates no session or grant', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'rd-message-'));
+  const host = await startHost({ root });
+  const a = await mcpClient(root, 'message-sender'), b = await mcpClient(root, 'message-recipient');
+  t.after(async () => { await a.client.close(); await b.client.close(); await host.close(); await rm(root, { recursive: true, force: true }); });
+  assert.equal((await tool(a.client, 'desktop_status')).data.instance_id, host.coordinator.instance);
+  const name = 'TEST · Atlas & 日本語';
+  const one = (await tool(a.client, 'desktop_subscribe', { name, workspace: process.cwd() })).data;
+  const two = (await tool(b.client, 'desktop_subscribe', { name, workspace: process.cwd() })).data;
+  assert.notEqual(one.session_id, two.session_id);
+  assert.equal(two.sessions.length, 2);
+  assert.ok(two.sessions.every(session => session.name === name));
+  host.coordinator.setBlocked(false);
+  await tool(a.client, 'desktop_take');
+  await tool(b.client, 'desktop_take');
+  await tool(b.client, 'desktop_unsubscribe');
+  const before = (await tool(a.client, 'desktop_status')).data;
+  const message = await tool(a.client, 'desktop_message', { to_session_id: two.session_id, text: 'Please yield when ready' });
+  assert.equal(message.result.isError, true);
+  assert.equal(message.data.error.code, 'NOT_FOUND');
+  const after = (await tool(a.client, 'desktop_status')).data;
+  assert.deepEqual(after.sessions.map(session => session.session_id), [one.session_id]);
+  assert.equal(after.you.session_id, one.session_id);
+  assert.equal(after.holder.session_id, before.holder.session_id);
+  assert.ok(after.lease.token === before.lease.token, 'A failed message must not replace the grant');
+  assert.equal(after.lease.heartbeat_id, before.lease.heartbeat_id);
+  assert.deepEqual(after.queue, []);
+  assert.deepEqual((await tool(a.client, 'desktop_messages')).data.messages, []);
+});

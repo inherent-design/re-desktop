@@ -1,11 +1,14 @@
 import { app, Tray, Menu, nativeImage, dialog, powerMonitor, clipboard } from 'electron';
 import { startHost } from './host.mjs';
-import { menuTemplate } from './menu.mjs';
+import { availabilityLabel, menuTemplate } from './menu.mjs';
 import { iconPng } from './icon.mjs';
 import { runtimePaths } from './runtime.mjs';
-import { writeFile, rm, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, rm, mkdir } from 'node:fs/promises';
 
-if (process.argv.includes('--smoke-test') && (!process.env.RE_DESKTOP_RUNTIME || !process.env.RE_DESKTOP_ARTIFACTS)) throw new Error('Use npm run test:tray with an isolated runtime and artifact directory');
+const smokeTest = process.argv.includes('--smoke-test');
+const nativeTest = smokeTest || (process.env.RE_DESKTOP_TEST_TRACE === '1' && Boolean(process.env.RE_DESKTOP_RUNTIME));
+const displayName = nativeTest ? 're:desktop native test' : 're:desktop';
+if (smokeTest && (!process.env.RE_DESKTOP_RUNTIME || !process.env.RE_DESKTOP_ARTIFACTS)) throw new Error('Use npm run test:tray with an isolated runtime and artifact directory');
 // Keep filesystem/application identity portable; visible tray labels use re:desktop.
 app.setName('re-desktop');
 const paths = runtimePaths();
@@ -19,6 +22,10 @@ else app.whenReady().then(async () => {
   let humanQuit = false;
   try {
     await mkdir(paths.root, { recursive: true, mode: 0o700 });
+    const aboutImage = nativeImage.createFromBuffer(await readFile(new URL('../assets/about.png', import.meta.url)));
+    if (aboutImage.isEmpty()) throw new Error('The About icon is invalid in this program build.');
+    const aboutIcon = aboutImage.resize({ width: 128, height: 128, quality: 'best' });
+    aboutIcon.setTemplateImage(false);
     // Only an explicit native open or operator CLI start clears a person's Quit.
     if (!process.env.RE_DESKTOP_AUTOSTART) await rm(paths.humanQuit, { force: true });
     host = await startHost();
@@ -34,8 +41,11 @@ else app.whenReady().then(async () => {
       copySessionId: id => clipboard.writeText(id).catch(() => dialog.showErrorBox('Could not copy session ID', 'The system clipboard refused the copy. Try again.')),
       pause: humanAction('pause', () => host.coordinator.setBlocked(true)),
       allow: humanAction('allow', () => host.coordinator.setBlocked(false)),
-      endAccess: () => host.coordinator.endAccess(),
-      about: () => dialog.showMessageBox({ type: 'info', title: 're:desktop', message: 'A shared desktop availability light', detail: `re:desktop ${app.getVersion()}\nBend 2.0.40 · MCP\n\nGreen: available\nSolid red: paused by you\nRed ring, white center: a session has access\n\nAgent heartbeat expires after 15 minutes without renewal. Fresh heartbeats allow longer work; release promptly when finished. People retain ordinary desktop control.` }),
+      endAccess: humanAction('end-access', () => host.coordinator.endAccess()),
+      about: () => dialog.showMessageBox({
+        type: 'info', title: `About ${displayName}`, message: displayName, buttons: ['Close'], icon: aboutIcon,
+        detail: `You can still use your desktop.\n\nPause agent access ends current access and stops new grants. Allow agent access lets sessions receive access.\n\nEnd current access lets the next waiting session take over.\n\nAgents must check in within ${Math.ceil(host.coordinator.snapshot().heartbeat_timeout_ms / 60000)} minutes to keep access. Each check-in renews that window.\n\nQuitting closes the service. Agents cannot reopen it until you open re:desktop again.\n\nGreen: available\nRed: agent access paused\nOrange-yellow: a session has access\n\nre:desktop ${app.getVersion()}\nBend 2.0.40 · MCP`
+      }),
       quit: () => { humanQuit = true; app.quit(); }
     };
     const render = () => {
@@ -46,8 +56,10 @@ else app.whenReady().then(async () => {
       const image = nativeImage.createFromBuffer(iconPng(snapshot.availability), { scaleFactor: 2 });
       image.setTemplateImage(false);
       tray.setImage(image);
-      tray.setToolTip(`re:desktop · ${snapshot.user_blocked ? 'Paused by you' : snapshot.holder ? `${snapshot.holder.name} has access` : 'Available'}`);
-      menu = Menu.buildFromTemplate(menuTemplate(snapshot, actions));
+      tray.setToolTip(`${displayName} · ${availabilityLabel(snapshot)}`);
+      const template = menuTemplate(snapshot, actions);
+      template[0].label = displayName;
+      menu = Menu.buildFromTemplate(template);
       tray.setContextMenu(menu);
     };
     host.coordinator.on('change', render);
@@ -67,7 +79,7 @@ else app.whenReady().then(async () => {
         await rm(`${paths.root}/host.pid`, { force: true });
       })().catch(error => console.error(error.message)).finally(() => app.quit());
     });
-    if (process.argv.includes('--smoke-test')) {
+    if (smokeTest) {
       const { smokeTray } = await import('../scripts/tray-acceptance.mjs');
       try {
         await smokeTray({ host, tray, getMenu: () => menu, actions, app });
@@ -79,7 +91,14 @@ else app.whenReady().then(async () => {
     }
   } catch (error) {
     console.error(error.message);
-    if (!process.argv.includes('--smoke-test')) dialog.showErrorBox('re:desktop could not start', error.message);
+    if (!smokeTest) {
+      const next = error.code === 'EADDRINUSE'
+        ? 'The local service address is already in use. Run re-desktop status to inspect the selected service before trying again.'
+        : ['EACCES', 'EPERM'].includes(error.code)
+          ? 'A required local resource could not be accessed. Check the file or socket permissions shown in the details below, then try again.'
+          : 'Check the details below before trying again. Include these details if you report the problem.';
+      dialog.showErrorBox('re:desktop could not start', `${next}\n\nDetails: ${error.message}`);
+    }
     tray?.destroy();
     await host?.close();
     app.exit(1);

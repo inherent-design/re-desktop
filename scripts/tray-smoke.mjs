@@ -11,8 +11,15 @@ try {
   const env = { ...process.env, RE_DESKTOP_RUNTIME: root, RE_DESKTOP_ARTIFACTS: resolve('artifacts') };
   delete env.ELECTRON_RUN_AS_NODE;
   const child = spawn(electron, ['.', '--smoke-test'], { stdio: 'inherit', env });
-  const timer = setTimeout(() => child.kill('SIGTERM'), 55000);
+  let forceStop;
+  const timer = setTimeout(() => {
+    child.kill('SIGTERM');
+    forceStop = setTimeout(() => {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+    }, 2000);
+  }, 55000);
   const status = await new Promise(resolve => child.once('exit', (code, signal) => resolve({ code, signal })));
   clearTimeout(timer);
+  clearTimeout(forceStop);
   if (status.code !== 0) throw new Error(`Tray smoke failed: ${JSON.stringify(status)}`);
 } finally { await rm(root, { recursive: true, force: true }); }

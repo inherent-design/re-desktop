@@ -36,6 +36,7 @@ jobs:
       - run: npm run setup:kernel
       - run: npm run proof:kernel
       - run: npm run check
+      - run: npm run test:icon
       - id: core
         run: node scripts/ci-core.mjs export
 

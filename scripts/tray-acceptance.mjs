@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { mcpClient, tool } from './mcp-client.mjs';
@@ -19,40 +19,63 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     assert.ok(report.bounds.width > 0 && report.bounds.height > 0, `OS tray did not become visible: ${JSON.stringify(report.bounds)}`);
     report.checks.push('OS tray item has nonzero bounds');
   } else report.checks.push('Linux Tray created; desktop environment determines indicator visibility');
-  assert.equal(getMenu().getMenuItemById('pause').checked, true);
+  assert.equal(getMenu().getMenuItemById('allow').enabled, true);
+  assert.equal(getMenu().getMenuItemById('pause'), null);
+  assert.equal(getMenu().getMenuItemById('holder').enabled, false);
+  assert.equal(getMenu().getMenuItemById('end-access').enabled, false);
   report.checks.push('Native Menu built with paused startup state');
+  let nativeSelection = false;
   if (process.platform === 'darwin') {
     try {
       await execute(resolve('build/macos-menu'), ['--check-accessibility'], { timeout: 5000 });
-      const selection = execute(resolve('build/macos-menu'), [String(process.pid), 'Allow agent access', '--select-only'], { timeout: 5000 });
-      tray.popUpContextMenu(getMenu());
-      const native = await selection;
-      report.accessibility = native.stdout.trim();
-      for (let attempt = 0; attempt < 20 && host.coordinator.snapshot().user_blocked; attempt++) await delay(50);
-      assert.equal(host.coordinator.snapshot().user_blocked, false, native.stdout);
-      report.checks.push('Native Tray API opened the context menu and Accessibility pressed its owned Allow agent access item');
+      nativeSelection = true;
     } catch (error) {
       if (error.code !== 3) throw error;
       report.accessibility = 'unavailable; native menu action invoked through Electron';
-      getMenu().getMenuItemById('allow').click();
     }
-  } else getMenu().getMenuItemById('allow').click();
+  }
+  async function select(item) {
+    assert.ok(item?.enabled, 'Selected native menu action must be enabled');
+    if (!nativeSelection) { await item.click(); return; }
+    const selection = execute(resolve('build/macos-menu'), [String(process.pid), item.label, '--select-only'], { timeout: 5000 });
+    tray.popUpContextMenu(getMenu());
+    const native = await selection;
+    (report.nativeActions ??= []).push({ label: item.label, result: native.stdout.trim() });
+    report.accessibility = 'available; actions pressed through the owned native menu';
+    return native.stdout;
+  }
+  async function waitForState(predicate, action) {
+    for (let attempt = 0; attempt < 40 && !predicate(host.coordinator.snapshot()); attempt++) await delay(50);
+    assert.ok(predicate(host.coordinator.snapshot()), `${action} did not produce its required host state`);
+  }
+  await select(getMenu().getMenuItemById('allow'));
+  await waitForState(snapshot => !snapshot.user_blocked, 'Allow agent access');
+  if (nativeSelection) report.checks.push('Native Tray API opened the context menu and Accessibility pressed its owned Allow agent access item');
   assert.equal(host.coordinator.snapshot().availability, 'available');
+  assert.equal(getMenu().getMenuItemById('allow'), null);
+  assert.equal(getMenu().getMenuItemById('pause').enabled, true);
   for (const state of ['available', 'blocked', 'in_use']) await writeFile(join(out, `icon-${state}.png`), iconPng(state, 128));
   const a = await mcpClient(host.paths.root, 'tray-a'), b = await mcpClient(host.paths.root, 'tray-b');
   try {
-    const one = (await tool(a.client, 'desktop_subscribe', { name: 'Atlas · native smoke', workspace: process.cwd() })).data;
-    const two = (await tool(b.client, 'desktop_subscribe', { name: 'Second session', workspace: process.cwd() })).data;
+    assert.equal((await tool(a.client, 'desktop_status')).data.instance_id, host.coordinator.instance);
+    assert.equal((await tool(b.client, 'desktop_status')).data.instance_id, host.coordinator.instance);
+    const workspace = join(host.paths.root, 'Workspace & 日本語 with a longer name for native menu review');
+    await mkdir(workspace);
+    const name = 're:desktop TEST · Atlas & 日本語 · duplicate display name';
+    const one = (await tool(a.client, 'desktop_subscribe', { name, workspace })).data;
+    const two = (await tool(b.client, 'desktop_subscribe', { name, workspace: process.cwd() })).data;
     const access = (await tool(a.client, 'desktop_take')).data;
     assert.equal(access.holder.session_id, one.session_id);
     const queued = (await tool(b.client, 'desktop_take')).data;
     assert.equal(queued.you.queue_position, 1);
     const holder = getMenu().getMenuItemById('holder');
     assert.match(holder.label, /Atlas.*has access/);
-    assert.ok(holder.submenu.items.some(i => i.label.includes(one.session_id)));
-    assert.ok(holder.submenu.items.some(i => i.label.includes(process.cwd())));
+    assert.equal(getMenu().items.filter(i => i.label === holder.label).length, 1);
+    assert.ok(holder.submenu.items.some(i => i.label === `Workspace: ${one.you.workspace.replaceAll('&', '&&')}`));
+    assert.ok(holder.submenu.items.some(i => i.label.startsWith('Agent check-in due within ')));
+    assert.equal(getMenu().items.find(i => i.id === 'end-access')?.enabled, true);
     report.checks.push('Two independent MCP processes update actual native holder metadata and numbered queue');
-    const copy = holder.submenu.items.find(i => i.label.startsWith('Copy session ID:'));
+    const copy = holder.submenu.items.find(i => i.label === 'Copy session ID');
     assert.ok(copy.enabled);
     const originalClipboard = [];
     // Materialize all native formats before copying, including rich/custom data.
@@ -67,7 +90,9 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
       originalClipboard.push(new ClipboardItem(data));
     }
     try {
-      await copy.click();
+      const nativeCopy = await select(copy);
+      if (nativeSelection) assert.ok(nativeCopy.includes(name), 'The visible native submenu must preserve the literal Unicode/ampersand name');
+      for (let attempt = 0; attempt < 20 && await clipboard.readText() !== one.session_id; attempt++) await delay(50);
       assert.equal(await clipboard.readText(), one.session_id);
       report.checks.push('Enabled native session-ID action copies the exact identity to the clipboard');
       console.log('Native session-ID clipboard copy passed');
@@ -88,18 +113,35 @@ export async function smokeTray({ host, tray, getMenu, actions, app }) {
     await tool(a.client, 'desktop_release', { lease_token: access.lease.token });
     assert.equal((await tool(b.client, 'desktop_status')).data.holder.session_id, two.session_id);
     report.checks.push('Release hands actual native tray access to the queued session');
-    getMenu().getMenuItemById('pause').click();
+    await select(getMenu().getMenuItemById('pause'));
+    await waitForState(snapshot => snapshot.user_blocked, 'Pause agent access');
     assert.equal((await tool(b.client, 'desktop_status')).data.holder, null);
-    assert.equal(getMenu().getMenuItemById('pause').checked, true);
+    assert.equal(getMenu().getMenuItemById('pause'), null);
+    assert.equal(getMenu().getMenuItemById('allow').enabled, true);
+    assert.equal(getMenu().getMenuItemById('end-access').enabled, false);
     report.checks.push('Native pause action revokes the current access and shows paused state');
-    getMenu().getMenuItemById('allow').click();
+    await select(getMenu().getMenuItemById('allow'));
+    await waitForState(snapshot => !snapshot.user_blocked, 'Allow agent access');
     await tool(b.client, 'desktop_take');
-    getMenu().getMenuItemById('end-access').click();
-    assert.equal((await tool(b.client, 'desktop_status')).data.holder, null);
-    report.checks.push('Native End current access action clears the holder');
+    assert.equal((await tool(a.client, 'desktop_take')).data.you.queue_position, 1);
+    await select(getMenu().getMenuItemById('end-access'));
+    await waitForState(snapshot => snapshot.holder?.session_id === one.session_id && !snapshot.user_blocked, 'End current access');
+    assert.equal((await tool(b.client, 'desktop_status')).data.holder.session_id, one.session_id);
+    report.checks.push('Native End current access hands off to the next waiter without pausing');
+    if (nativeSelection) {
+      const close = execute(resolve('build/macos-menu'), [String(process.pid), 'Close', '--select-only'], { timeout: 5000 });
+      const about = actions.about();
+      await close;
+      assert.equal((await about).response, 0);
+      report.checks.push('Native About dialog opens and its owned Close button dismisses it');
+    }
     actions.pause();
     await delay(20);
-  } finally { await a.client.close(); await b.client.close(); }
+  } finally {
+    if (process.platform === 'darwin') tray.closeContextMenu();
+    await a.client.close();
+    await b.client.close();
+  }
   report.finished = new Date().toISOString();
   await writeFile(join(out, 'tray-acceptance.json'), JSON.stringify(report, null, 2) + '\n');
   console.log(`Native tray acceptance passed (${report.checks.length} checks)`);

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>About icon workbench · re:desktop</title>
+  <link rel="stylesheet" href="/workbench.css">
+  <script type="module" src="/workbench.mjs"></script>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <p class="eyebrow">inherent.design <span aria-hidden="true">/</span> re:desktop</p>
+      <h1>About icon workbench</h1>
+      <p class="lede">Adjust the three discs, compare the result, and export your preferred values.</p>
+      <p class="caption">The preview uses the About icon’s Python renderer. Drafts stay in this browser; exporting does not change the app.</p>
+    </header>
+
+    <div class="editor-actions" aria-label="Draft actions">
+      <div class="action-group">
+        <button id="undo" disabled>Undo</button>
+        <button id="redo" disabled>Redo</button>
+        <button id="reset" disabled>Reset values</button>
+        <button id="import" disabled>Load settings…</button>
+        <input id="import-file" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div class="action-group">
+        <span id="draft-status" class="caption">Loading settings…</span>
+        <button id="copy" disabled>Copy values</button>
+        <button id="export" class="primary" disabled>Export settings</button>
+      </div>
+    </div>
+    <p id="action-status" class="action-status" role="status"></p>
+
+    <div class="workbench">
+      <aside class="workbench-browser">
+        <h2 class="group-title">Layers</h2>
+        <div id="layer-browser" class="browser-list" aria-label="Choose a layer">
+          <div class="layer-row"><button data-layer="0" class="layer-button" aria-pressed="true"><span class="swatch magenta"></span><span>Magenta<small>Halftone disc</small></span></button><input type="checkbox" data-visible="0" checked aria-label="Show magenta in preview"></div>
+          <div class="layer-row"><button data-layer="1" class="layer-button" aria-pressed="false"><span class="swatch yellow"></span><span>Yellow<small>Striped disc</small></span></button><input type="checkbox" data-visible="1" checked aria-label="Show yellow in preview"></div>
+          <div class="layer-row"><button data-layer="2" class="layer-button" aria-pressed="false"><span class="swatch cyan"></span><span>Cyan<small>Soft radial disc</small></span></button><input type="checkbox" data-visible="2" checked aria-label="Show cyan in preview"></div>
+          <button data-layer="canvas" class="layer-button canvas-button" aria-pressed="false"><span class="swatch canvas-swatch"></span><span>Canvas<small>Background and blending</small></span></button>
+        </div>
+        <button id="isolate" class="text-button">Isolate selected layer</button>
+        <p id="visibility-note" class="caption">All layers visible.</p>
+        <div class="browser-note">
+          <h2 class="group-title">Starting values</h2>
+          <p class="caption">42 / 28 / 20-unit discs<br>4-unit dots · 6-unit stripes<br>6-unit bottom insets</p>
+          <p class="caption">Each bottom inset is measured from the parent’s bottom edge to the child’s bottom edge.</p>
+        </div>
+      </aside>
+
+      <div class="entry-editor">
+        <section class="preview-panel panel" aria-labelledby="preview-title">
+          <div class="panel-heading">
+            <h2 id="preview-title">Preview</h2>
+            <div class="view-tabs" role="group" aria-label="Preview view">
+              <button data-view="current" aria-pressed="true">Current</button>
+              <button data-view="compare" aria-pressed="false">Compare</button>
+            </div>
+          </div>
+          <div class="preview-options">
+            <label><input id="guides" type="checkbox"> Construction guides</label>
+            <label><input id="grid" type="checkbox"> Unit grid</label>
+            <div class="zoom-controls"><button id="zoom-out" aria-label="Zoom out">−</button><output id="zoom-label">100%</output><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit">Fit</button></div>
+          </div>
+          <div id="comparison" class="comparison">
+            <figure class="current-figure">
+              <div id="stage" class="stage" tabindex="0" aria-label="Icon preview. Use the zoom buttons; drag to pan when zoomed.">
+                <div id="artboard" class="artboard">
+                  <img id="preview-image" alt="Current About icon" draggable="false">
+                  <svg id="construction" viewBox="0 0 64 64" aria-hidden="true"></svg>
+                </div>
+              </div>
+              <figcaption id="preview-caption">Current draft</figcaption>
+            </figure>
+            <figure id="reference-figure" hidden>
+              <div class="stage reference-stage"><img id="reference-image" alt="Reference About icon" draggable="false"></div>
+              <figcaption id="reference-caption">Starting design</figcaption>
+            </figure>
+          </div>
+          <div id="reference-actions" class="reference-actions" hidden>
+            <button id="pin" disabled>Use current as reference</button><button id="restore-reference">Restore starting reference</button>
+          </div>
+          <div class="preview-feedback"><p id="render-status" role="status">Connecting to the renderer…</p><button id="retry" hidden>Retry preview</button></div>
+          <p id="geometry-summary" class="caption geometry-summary"></p>
+          <div class="size-checks" aria-label="Scaled size previews">
+            <div><img data-size="24" width="24" height="24" alt="Icon scaled to 24 pixels"><span>24 px</span></div>
+            <div><img data-size="32" width="32" height="32" alt="Icon scaled to 32 pixels"><span>32 px</span></div>
+            <div><img data-size="64" width="64" height="64" alt="Icon scaled to 64 pixels"><span>64 px</span></div>
+            <div><img data-size="128" width="128" height="128" alt="Icon scaled to 128 pixels"><span>128 px</span></div>
+          </div>
+          <div class="export-png"><span class="caption">Scaled previews · PNG exports include all layers.</span><label for="png-size">PNG size</label><select id="png-size"><option value="256">256 px</option><option value="512">512 px</option><option value="1024" selected>1024 px</option><option value="2048">2048 px</option></select><button id="download" disabled>Export PNG</button></div>
+        </section>
+
+        <section class="controls-panel panel" aria-labelledby="controls-title">
+          <div class="panel-heading"><div><h2 id="controls-title">Magenta</h2><p id="controls-description" class="caption">Halftone disc</p></div><span id="layer-badge" class="badge">Layer 1</span></div>
+          <div id="controls"></div>
+          <p id="field-error" class="field-error" role="alert" hidden></p>
+        </section>
+
+        <details class="source-panel panel">
+          <summary>Settings JSON</summary>
+          <p class="caption">Export this file or copy the values to share your preferred design. Loading JSON changes this draft only.</p>
+          <label for="settings-json" class="sr-only">Settings JSON</label>
+          <textarea id="settings-json" spellcheck="false" rows="12"></textarea>
+          <div class="editor-actions"><button id="load-json" disabled>Load JSON into draft</button><span id="source-status" class="caption" role="status"></span></div>
+        </details>
+      </div>
+    </div>
+    <footer class="page-footer">Workbench patterns and tokens adapted from Create: Skyweave Atlas. About artwork and tray status indicators are separate.</footer>
+  </main>
+</body>
+</html>

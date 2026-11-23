@@ -29,6 +29,19 @@ func center(_ element: AXUIElement) -> CGPoint? {
   guard AXValueGetValue(unsafeBitCast(p, to: AXValue.self), .cgPoint, &point), AXValueGetValue(unsafeBitCast(s, to: AXValue.self), .cgSize, &size), size.width > 0, size.height > 0 else { return nil }
   return CGPoint(x: point.x + size.width / 2, y: point.y + size.height / 2)
 }
+func visibleMenuAncestor(_ element: AXUIElement, _ pid: pid_t) -> AXUIElement? {
+  var current = element
+  for _ in 0..<8 {
+    guard let value = attr(current, kAXParentAttribute), CFGetTypeID(value) == AXUIElementGetTypeID() else { return nil }
+    current = unsafeBitCast(value, to: AXUIElement.self)
+    if (attr(current, kAXRoleAttribute) as? String) == (kAXMenuItemRole as String), center(current) != nil {
+      var owner: pid_t = 0
+      guard AXUIElementGetPid(current, &owner) == .success, owner == pid else { return nil }
+      return current
+    }
+  }
+  return nil
+}
 func click(_ point: CGPoint) {
   CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left)?.post(tap: .cghidEventTap)
   usleep(50000)
@@ -63,19 +76,35 @@ if !selectOnly, let point = statusPoint {
   if open != .success && open != .cannotComplete { click(point) }
 }
 var observed = "not_found"
+var openedSubmenus = Set<String>()
 for _ in 0..<30 {
   if let item = bar.flatMap({ find($0, CommandLine.arguments[2]) }) ?? find(app, CommandLine.arguments[2]) {
     var owner: pid_t = 0
     let ownerResult = AXUIElementGetPid(item, &owner)
     let enabled = attr(item, kAXEnabledAttribute) as? Bool
     let itemPoint = center(item)
+    let ancestor = visibleMenuAncestor(item, pid)
+    let parentTitle = ancestor.flatMap { attr($0, kAXTitleAttribute) as? String }
     observed = "owner=\(owner) expected=\(pid) owner_result=\(ownerResult.rawValue) enabled=\(String(describing: enabled)) center=\(String(describing: itemPoint))"
+    // Hidden submenu items have no bounds until their owned parent is opened.
+    if ownerResult == .success, owner == pid, enabled == true, itemPoint == nil, let parent = ancestor, let title = parentTitle, !openedSubmenus.contains(title) {
+      var names: CFArray?
+      AXUIElementCopyActionNames(parent, &names)
+      let actions = names as? [String] ?? []
+      let action = actions.contains(kAXShowMenuAction as String) ? kAXShowMenuAction : kAXPressAction
+      let result = AXUIElementPerformAction(parent, action as CFString)
+      openedSubmenus.insert(title)
+      observed += " submenu_open=\(result.rawValue)"
+      usleep(100000)
+      continue
+    }
     if ownerResult == .success, owner == pid, let point = itemPoint, enabled == true {
       var names: CFArray?
       AXUIElementCopyActionNames(item, &names)
       let result = AXUIElementPerformAction(item, kAXPressAction as CFString)
       usleep(100000)
       restorePointer()
+      if let title = parentTitle { print("submenu_parent_title=\(title)") }
       print("native_menu_press=\(result.rawValue) actions=\(names as? [String] ?? []) bounds=\(point)")
       exit(result == .success || result == .cannotComplete ? 0 : 7)
     }

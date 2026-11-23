@@ -7,16 +7,20 @@ re:desktop is a shared availability signal for one desktop, its human and cooper
 | Signal | Meaning | Menu behavior |
 | --- | --- | --- |
 | Solid green disk | Human allows access; no session currently has it | Show “Desktop available”, or identify a queue head awaiting reconnection |
-| Solid red disk | Human paused agent access | Show “Agent access paused by you”; no grant is possible |
-| Red ring with white center | A session has access | Show its name, session ID and absolute workspace in a submenu |
+| Solid red disk | Agent access is paused | Show “Agent access paused”; no grant is possible |
+| Solid orange-yellow disk | A session has access | Show its name once, with details and a session ID copy action in its submenu |
 
 The app starts paused. “Allow agent access” clears the human block; “Pause agent access” revokes the current cooperative access and prevents new grants. Pausing retains waiting sessions. The previous holder must take access again after the human allows it. “End current access” releases the current holder and lets scheduling continue. A pause is the action to use when the human wants the desktop back without immediately handing it to a waiter.
 
-The menu also lists subscribed session names and a queue numbered from one. Each entry exposes its session ID, workspace and connection state. **Copy session ID** copies that public identity, including from holder, queue and subscriber submenus. The holder submenu shows remaining heartbeat minutes. Session names and paths are literal text, including Unicode and ampersands. Status text supplements icon color. Artwork intentionally uses color rather than macOS template-image tinting. The app has no ordinary window or Dock icon on macOS. Quit removes the indicator, closes its service, and records a deliberate-stop choice for this profile. Agent preparation cannot clear that choice; an explicit native open or operator `re-desktop start` can. Screen lock or system suspend pauses access; returning does not automatically allow it.
+The menu offers the applicable “Pause agent access” or “Allow agent access” action below its status. “End current access” is a main-menu action, disabled when no session has access. Only the person can Allow. The status and tooltip use the same wording, including when a queue head is waiting to reconnect. Pause attribution stays neutral because startup, screen lock, and suspend also pause access.
+
+The menu lists session names and a queue numbered from one. Each entry shows its full workspace and connection state. **Copy session ID** copies the complete public identity from holder, queue, and session submenus. The holder submenu says “Agent check-in due within N min” for the remaining renewable heartbeat window. “Reconnecting…” identifies a retained disconnected session without implying a fresh 30 seconds remain. Session names and paths are literal text, including Unicode and ampersands. Status text supplements icon color. Artwork intentionally uses color rather than macOS template-image tinting. The app has no ordinary window or Dock icon on macOS.
+
+About explains access controls, check-ins, Quit, and indicator colors before support versions. Quit removes the indicator, closes its service, and records a deliberate-stop choice for this profile. Agent preparation cannot clear that choice; an explicit native open or operator `re-desktop start` can. Screen lock or system suspend pauses access; returning does not automatically allow it.
 
 ## Sessions and access
 
-One MCP stdio process represents one local agent session. A subscription has a human-readable name, workspace, public UUID and private reconnect capability. The host gives it an internal positive numeric ID for Bend scheduling. The public name is descriptive rather than authenticated identity; this is an owner-local coordination system.
+One MCP stdio process represents one local agent session. A subscription has a human-readable name, workspace, public UUID, and private reconnect capability. Names can repeat; the UUID identifies the participant. The host gives it an internal positive numeric ID for Bend scheduling. The public name is descriptive rather than authenticated identity; this is an owner-local coordination system.
 
 Access has one holder and an epoch token scoped to the current host instance. Every grant increments the epoch. Release and renewal require the holder's current token and its own connection. Old tokens cannot affect a later holder or survive a host restart. A repeated take neither duplicates the queue entry nor renews existing access. A nonwaiting take never jumps the queue.
 

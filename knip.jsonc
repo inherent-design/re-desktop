@@ -10,9 +10,10 @@
         "scripts/fixtures/lifecycle-bridge.mjs",
         "scripts/installed-check.mjs",
         "scripts/lease-deadline-check.mjs",
-        "scripts/tui-lifecycle-check.mjs"
+        "scripts/tui-lifecycle-check.mjs",
+        "tools/icon-workbench/workbench.mjs"
       ],
-      "project": ["src/**/*.mjs", "scripts/**/*.mjs", "test/**/*.mjs"],
+      "project": ["src/**/*.mjs", "scripts/**/*.mjs", "test/**/*.mjs", "tools/icon-workbench/**/*.mjs"],
       // An operator-installed CLI, used only by optional local integration checks.
       "ignoreBinaries": ["codex"]
     },

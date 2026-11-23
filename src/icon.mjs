@@ -15,15 +15,14 @@ function chunk(type, bytes) {
   return out;
 }
 
-// Code-native status artwork: solid green, solid red, red ring with white center.
+// Code-native status artwork: solid green, solid red, solid orange-yellow.
 export function iconPng(availability, size = 32) {
   const pixels = Buffer.alloc((size * 4 + 1) * size);
   const scale = size / 32;
+  const rgb = availability === 'available' ? [28, 177, 98] : availability === 'in_use' ? [245, 179, 1] : [229, 63, 73];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const radius = Math.hypot((x + 0.5) / scale - 16, (y + 0.5) / scale - 16);
     const edge = Math.min(1, Math.max(0, 12.5 - radius));
-    const fill = availability === 'in_use' && radius < 8.5;
-    const rgb = fill ? [255, 255, 255] : availability === 'available' ? [28, 177, 98] : [229, 63, 73];
     const offset = y * (size * 4 + 1) + 1 + x * 4;
     pixels.set([...rgb, Math.round(255 * edge)], offset);
   }

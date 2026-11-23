@@ -168,7 +168,7 @@ export class Coordinator extends EventEmitter {
           break;
         case 'message': {
           const target = [...this.sessions.values()].find(s => s.publicId === args.to_session_id);
-          if (!target) fail('NOT_FOUND', 'Recipient session is no longer subscribed');
+          if (!target) fail('NOT_FOUND', 'Recipient session is no longer subscribed. Read desktop_status for current participants before sending another message.');
           if (args.urgent !== undefined && typeof args.urgent !== 'boolean') fail('INVALID_ARGUMENT', 'urgent must be a boolean');
           if (target.messages.length >= 50) fail('MAILBOX_FULL', 'Recipient has 50 unacknowledged messages');
           const body = text(args.text, 2000, 'message');

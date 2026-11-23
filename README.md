@@ -2,7 +2,7 @@
 
 A desktop availability indicator for people and cooperating agents, with a native tray/menu bar app and an MCP server. Bend implements access scheduling, lease expiry, and human pause.
 
-The menu shows the current holder, subscribed sessions, workspaces, and a numbered waiting queue. Green means available, solid red means paused by you, and a red ring with a white center means an agent has access. Coordination is voluntary; people retain ordinary desktop control.
+The menu shows the current holder, sessions, workspaces, and a numbered waiting queue. Green means available, solid red means agent access is paused, and a solid orange-yellow circle means an agent has access. Coordination is voluntary; you can still use your desktop.
 
 The project is experimental. Native previews are unsigned. See [verification](docs/verification.md) for executed checks and platform limits.
 

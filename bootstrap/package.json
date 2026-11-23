@@ -1,6 +1,6 @@
 {
   "name": "@inherent.design/re-desktop",
-  "version": "0.2.0-preview.4",
+  "version": "0.2.0-preview.5",
   "description": "Verified native re:desktop releases and a per-session MCP entry",
   "type": "module",
   "license": "Apache-2.0",
