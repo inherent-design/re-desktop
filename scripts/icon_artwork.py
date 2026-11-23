@@ -23,6 +23,11 @@ def clamp(value):
     return min(1.0, max(0.0, value))
 
 
+def radial_fade(radius, core):
+    t = clamp((radius - core) / (1 - core))
+    return 1 - t * t * (3 - 2 * t)
+
+
 def number(value, field, minimum=None, maximum=None):
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
         raise SettingsError(field, 'Enter a finite number.')
@@ -70,7 +75,7 @@ def normalize_settings(value):
             raise SettingsError(field, f'Provide {length} values.')
         for index, item in enumerate(settings[field]):
             number(item, f'{field}.{index}')
-    for field in ['canvas_units', 'dot_diameter', 'dot_gap', 'dot_angle', 'stripe_width', 'stripe_gap', 'stripe_angle', 'stripe_phase', 'cyan_core']:
+    for field in ['canvas_units', 'dot_diameter', 'dot_gap', 'dot_angle', 'stripe_width', 'stripe_gap', 'stripe_angle', 'stripe_phase', 'cyan_core', 'magenta_core']:
         number(settings[field], field)
     number(settings['canvas_units'], 'canvas_units', 8, 512)
     diameters = settings['diameters']
@@ -88,6 +93,9 @@ def normalize_settings(value):
     for index, offset in enumerate(settings['dot_phase']):
         number(offset, f'dot_phase.{index}', -512, 512)
     number(settings['cyan_core'], 'cyan_core', 0, 0.99)
+    number(settings['magenta_core'], 'magenta_core', 0, 0.99)
+    if not isinstance(settings['magenta_fade'], bool):
+        raise SettingsError('magenta_fade', 'Enable or disable the magenta edge fade with true or false.')
     if not isinstance(settings['colors'], list) or len(settings['colors']) != 3:
         raise SettingsError('colors', 'Provide three ink colors.')
     for field, color in [('background', settings['background']), *[(f'colors.{i}', c) for i, c in enumerate(settings['colors'])]]:
@@ -153,7 +161,8 @@ def render(size, settings):
             continue
         for px in range(size):
             x = (px + 0.5) * unit_per_pixel
-            outer = clamp((mr - math.hypot(x - cx, y - my)) * scale + 0.5)
+            outer_distance = math.hypot(x - cx, y - my)
+            outer = clamp((mr - outer_distance) * scale + 0.5)
             if outer == 0:
                 continue
             local_x, local_y = x - cx - phase_x, y - my - phase_y
@@ -161,13 +170,14 @@ def render(size, settings):
             dy = (-ds * local_x + dc * local_y + dot_pitch / 2) % dot_pitch - dot_pitch / 2
             dots = clamp((dot_radius - math.hypot(dx, dy)) * scale + 0.5)
             magenta = magenta_opacity * outer * dots
+            if settings['magenta_fade']:
+                magenta *= radial_fade(outer_distance / mr, settings['magenta_core'])
             middle = clamp((yr - math.hypot(x - cx, y - yy)) * scale + 0.5)
             normal = -(x - cx) * sin_angle + (y - yy) * cos_angle - settings['stripe_phase']
             stripe_distance = abs((normal + stripe_pitch / 2) % stripe_pitch - stripe_pitch / 2)
             yellow = yellow_opacity * middle * clamp((stripe_half - stripe_distance) * scale + 0.5)
             radius = math.hypot(x - cx, y - cy) / cr
-            t = clamp((radius - core) / (1 - core))
-            cyan = cyan_opacity * (1 - t * t * (3 - 2 * t))
+            cyan = cyan_opacity * radial_fade(radius, core)
             if pure_cmy:
                 pixel = (round(255 * (1 - cyan)), round(255 * (1 - magenta)), round(255 * (1 - yellow)))
             else:

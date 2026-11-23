@@ -16,7 +16,7 @@ const cli = args[cliIndex + 1], local = args.includes('--local-archive');
 const { version } = JSON.parse(await readFile('package.json'));
 const root = await mkdtemp(join(tmpdir(), 'rd-e2e-'));
 const store = join(root, 'programs with spaces ☁'), runtime = join(root, 'run');
-const env = { ...process.env, RE_DESKTOP_STORE: store, RE_DESKTOP_RUNTIME: runtime };
+const env = { ...process.env, RE_DESKTOP_STORE: store, RE_DESKTOP_RUNTIME: runtime, RE_DESKTOP_TEST_TRACE: '1' };
 const report = { observedAt: new Date().toISOString(), version, cli, installedFromRelease: !local, platform: process.platform, checks: [] };
 let a, b, pid;
 const cliCall = (...argv) => execute(process.execPath, [cli, ...argv], { env, timeout: 240000, maxBuffer: 1048576 });
@@ -41,8 +41,8 @@ try {
   assert.equal((await tool(a.client, 'desktop_runtime_status')).data.host_running, false);
   report.checks.push('Installed MCP discovery and runtime status exposed eleven tools without starting a tray');
   const [one, two] = await Promise.all([
-    tool(a.client, 'desktop_subscribe', { name: 'Installed A', workspace: root }),
-    tool(b.client, 'desktop_subscribe', { name: 'Installed B', workspace: root })
+    tool(a.client, 'desktop_subscribe', { name: 're:desktop TEST · Installed A', workspace: root }),
+    tool(b.client, 'desktop_subscribe', { name: 're:desktop TEST · Installed B', workspace: root })
   ]);
   assert.equal(one.data.user_blocked, true);
   assert.equal(two.data.user_blocked, true);

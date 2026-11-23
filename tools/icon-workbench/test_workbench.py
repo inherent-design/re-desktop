@@ -19,6 +19,16 @@ spec = importlib.util.spec_from_file_location('icon_workbench', ROOT / 'scripts/
 workbench = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(workbench)
 
+# Controlled geometry and solid textures keep pixel checks independent of art direction.
+FLAT_INKS = {
+    'canvas_units': 64, 'diameters': [50, 35.5, 31.5], 'bottom_gaps': [0, 0],
+    'opacities': [1, 1, 1], 'colors': ['#FF00FF', '#FFFF00', '#00FFFF'],
+    'background': '#FFFFFF', 'blend': 'multiply',
+    'dot_diameter': 512, 'dot_gap': 0, 'dot_angle': 0, 'dot_phase': [0, 0],
+    'stripe_width': 512, 'stripe_gap': 0, 'stripe_angle': 0, 'stripe_phase': 0,
+    'magenta_fade': False, 'magenta_core': 0, 'cyan_core': .9,
+}
+
 
 def pixels(png):
     assert png[:8] == b'\x89PNG\r\n\x1a\n'
@@ -51,25 +61,40 @@ class ArtworkTests(unittest.TestCase):
         self.assertEqual(render(32, DEFAULT_SETTINGS), render(32, DEFAULT_SETTINGS))
         size, pixel = pixels(render(32, DEFAULT_SETTINGS))
         self.assertEqual(size, 32)
-        self.assertEqual(pixel(0, 0), (255, 255, 255))
+        self.assertEqual(pixel(0, 0), tuple(bytes.fromhex(DEFAULT_SETTINGS['background'][1:])))
 
     def test_independent_bottom_insets_control_geometry(self):
-        settings = normalize_settings({'bottom_gaps': [2, 1]})
+        base = {'canvas_units': 64, 'diameters': [42, 28, 20]}
+        settings = normalize_settings(dict(base, bottom_gaps=[2, 1]))
         circles = geometry(settings)
         self.assertEqual([c['center'] for c in circles], [(32, 32), (32, 37), (32, 40)])
-        self.assertEqual(normalize_settings({'bottom_gap': 6})['bottom_gaps'], [6, 6])
+        self.assertEqual(normalize_settings(dict(base, bottom_gap=6))['bottom_gaps'], [6, 6])
         with self.assertRaises(SettingsError) as rejected:
-            normalize_settings({'bottom_gaps': [6, 9]})
+            normalize_settings(dict(base, bottom_gaps=[6, 9]))
         self.assertEqual(rejected.exception.field, 'bottom_gaps.1')
 
     def test_blending_and_background_are_visible_in_pixels(self):
-        ink = dict(DEFAULT_SETTINGS, opacities=[1, 1, 1], cyan_core=.9)
+        ink = FLAT_INKS
         _, multiply = pixels(render(64, ink))
         _, normal = pixels(render(64, dict(ink, blend='normal')))
         self.assertEqual(multiply(32, 31), (0, 0, 0))
         self.assertEqual(normal(32, 31), (0, 255, 255))
         _, background = pixels(render(32, dict(ink, background='#123456', opacities=[0, 0, 0])))
         self.assertEqual(background(16, 16), (18, 52, 86))
+
+    def test_magenta_edge_fade_uses_the_shared_radial_profile(self):
+        settings = dict(FLAT_INKS, opacities=[1, 0, 0], magenta_fade=True, magenta_core=0)
+        _, faded = pixels(render(128, settings))
+        _, solid = pixels(render(128, dict(settings, magenta_fade=False)))
+        _, core = pixels(render(128, dict(settings, magenta_core=.8)))
+        # Magenta removes green. A falling opacity restores green toward the edge.
+        self.assertLess(faded(64, 64)[1], faded(88, 64)[1])
+        self.assertLess(faded(88, 64)[1], faded(112, 64)[1])
+        self.assertGreater(faded(112, 64)[1], 240)
+        self.assertEqual(solid(112, 64)[1], 0)
+        self.assertEqual(core(88, 64)[1], 0)
+        self.assertEqual(render(64, dict(settings, magenta_fade=False, magenta_core=0)),
+                         render(64, dict(settings, magenta_fade=False, magenta_core=.8)))
 
     def test_invalid_inputs_are_rejected_without_mutating_defaults(self):
         before = deepcopy(DEFAULT_SETTINGS)
@@ -79,6 +104,7 @@ class ArtworkTests(unittest.TestCase):
             {'colors': ['red', '#FFFF00', '#00FFFF']}, {'cyan_core': 1},
             {'unknown': 1}, {'dot_phase': [0]},
             {'formatVersion': True, 'settings': {}},
+            {'magenta_fade': 'yes'}, {'magenta_core': 1},
         ]
         for settings in invalid:
             with self.subTest(settings=settings), self.assertRaises(SettingsError):

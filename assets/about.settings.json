@@ -2,20 +2,22 @@
   "formatVersion": 1,
   "settings": {
     "canvas_units": 64,
-    "diameters": [42, 28, 20],
-    "bottom_gaps": [6, 6],
-    "opacities": [0.32, 0.72, 0.88],
+    "diameters": [50, 35.5, 31.5],
+    "bottom_gaps": [0, 0],
+    "opacities": [0.2, 0.72, 1],
     "colors": ["#FF00FF", "#FFFF00", "#00FFFF"],
     "background": "#FFFFFF",
     "blend": "multiply",
-    "dot_diameter": 4,
-    "dot_gap": 6,
+    "magenta_fade": false,
+    "magenta_core": 0,
+    "dot_diameter": 5.5,
+    "dot_gap": 2.5,
     "dot_angle": 0,
     "dot_phase": [0, 0],
-    "stripe_width": 6,
-    "stripe_gap": 6,
+    "stripe_width": 12.5,
+    "stripe_gap": 2.5,
     "stripe_angle": -33,
-    "stripe_phase": 0,
-    "cyan_core": 0.15
+    "stripe_phase": 4,
+    "cyan_core": 0
   }
 }

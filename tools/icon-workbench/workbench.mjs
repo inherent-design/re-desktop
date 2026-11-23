@@ -152,6 +152,7 @@ function numberField(path, label, min, max, step = 1, unit = 'u', hint = '', fac
     changed();
   });
   $('#controls').append(field);
+  return field;
 }
 function colorField(path, label) {
   const id = 'field-' + path.replaceAll('.', '-');
@@ -194,6 +195,14 @@ function buildControls() {
   numberField(`opacities.${layer}`, 'Opacity', 0, 100, 1, '%', '', 100);
   colorField(`colors.${layer}`, 'Ink color');
   if (layer === 0) {
+    const fade = document.createElement('div'); fade.className = 'field toggle-field';
+    fade.innerHTML = '<label for="magenta-fade"><input id="magenta-fade" type="checkbox"> Edge fade</label><p class="caption">Use the same smooth opacity fade as cyan, from a solid core to a transparent edge.</p>';
+    const toggle = fade.querySelector('input'); toggle.checked = state.settings.magenta_fade;
+    $('#controls').append(fade);
+    const core = numberField('magenta_core', 'Solid core radius', 0, 99, 1, '%', '0% fades across the whole disc; a larger core keeps more of the center at full opacity.', 100);
+    const updateCore = () => core.querySelectorAll('input').forEach((input) => { input.disabled = !toggle.checked; });
+    updateCore();
+    toggle.addEventListener('change', () => { state.settings.magenta_fade = toggle.checked; updateCore(); changed(); });
     numberField('dot_diameter', 'Dot diameter', .1, 20, .1);
     numberField('dot_gap', 'Clear gap between dots', 0, 24, .5, 'u', 'Dot pitch equals diameter plus clear gap.');
     numberField('dot_angle', 'Grid angle', -180, 180, 1, '°');
@@ -397,6 +406,14 @@ async function start() {
     if (!response.ok) throw new Error('Settings could not be read.');
     const initial = await response.json();
     state.defaults = clone(initial.settings); state.settings = clone(initial.settings);
+    const startingValues = $('#starting-values');
+    const lines = [
+      `${initial.settings.diameters.join(' / ')}-unit discs`,
+      `${initial.settings.dot_diameter}-unit dots · ${initial.settings.stripe_width}-unit stripes`,
+      `${initial.settings.bottom_gaps.join(' / ')}-unit bottom insets`,
+    ];
+    startingValues.replaceChildren();
+    lines.forEach((line, index) => { if (index) startingValues.append(document.createElement('br')); startingValues.append(document.createTextNode(line)); });
     state.history = [JSON.stringify(state.settings)]; state.position = 0;
     startingReference = initial.reference;
     $('#reference-image').src = initial.reference; $('#preview-image').src = initial.reference;

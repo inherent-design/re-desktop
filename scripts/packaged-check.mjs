@@ -37,8 +37,8 @@ try {
   }
   assert.equal(ready.data.availability, 'blocked');
   report.checks.push('Packaged Electron Node mode loads the ASAR MCP entry and all eleven tools without external Node');
-  const one = (await tool(a.client, 'desktop_subscribe', { name: 'Packaged A', workspace: root })).data;
-  const two = (await tool(b.client, 'desktop_subscribe', { name: 'Packaged B', workspace: root })).data;
+  const one = (await tool(a.client, 'desktop_subscribe', { name: 're:desktop TEST · Packaged A', workspace: root })).data;
+  const two = (await tool(b.client, 'desktop_subscribe', { name: 're:desktop TEST · Packaged B', workspace: root })).data;
   if (native) {
     await execute(resolve('build/macos-menu'), [String(app.pid), 'Allow agent access'], { timeout: 5000 });
     for (let attempt = 0; attempt < 40; attempt++) {
