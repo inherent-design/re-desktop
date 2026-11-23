@@ -66,16 +66,24 @@ class WorkbenchHandler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
+    def trusted_host(self):
+        return self.headers.get('Host') == self.server.origin.removeprefix('http://')
+
     def same_origin(self):
-        return (self.headers.get('Host') == self.server.origin.removeprefix('http://')
+        return (self.trusted_host()
                 and self.headers.get('Origin', self.server.origin) == self.server.origin
                 and self.headers.get('Sec-Fetch-Site', 'same-origin') in ['same-origin', 'none'])
 
     def do_GET(self):
-        if not self.same_origin():
+        path = urlsplit(self.path).path
+        # A link from another site may open the public workbench document.
+        # API calls and embedded resources still require this local origin.
+        navigation = (path == '/' and self.trusted_host()
+                      and self.headers.get('Sec-Fetch-Mode') == 'navigate'
+                      and self.headers.get('Sec-Fetch-Dest') == 'document')
+        if not (self.same_origin() or navigation):
             self.respond(403, {'error': 'Open the workbench using its local URL.'})
             return
-        path = urlsplit(self.path).path
         if path in STATIC:
             filename, content_type = STATIC[path]
             self.respond(200, (ROOT / 'tools/icon-workbench' / filename).read_bytes(), content_type)

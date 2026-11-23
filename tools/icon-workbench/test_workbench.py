@@ -138,6 +138,13 @@ class ServerTests(unittest.TestCase):
         for payload in [[], {'settings': {} , 'size': 4096}, {'settings': {}, 'visible': [1, 1, 1]}]:
             self.assertEqual(self.request('POST', '/api/render', payload)[0], 422)
 
+    def test_external_link_can_open_the_document_without_opening_the_api(self):
+        navigation = {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Dest': 'document'}
+        self.assertEqual(self.request('GET', '/', headers=navigation)[0], 200)
+        self.assertEqual(self.request('GET', '/api/state', headers=navigation)[0], 403)
+        self.assertEqual(self.request('GET', '/', headers=dict(navigation, Host='example.org'))[0], 403)
+        self.assertEqual(self.request('POST', '/api/render', {'settings': {}}, navigation)[0], 403)
+
     def test_busy_renderer_reports_recovery(self):
         with self.server.render_lock:
             status, result = self.request('POST', '/api/render', {'settings': {}})
