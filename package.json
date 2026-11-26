@@ -43,8 +43,8 @@
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",
-    "electron": "45.4.1",
-    "knip": "6.46.1",
-    "tar": "7.5.23"
+    "electron": "45.5.0",
+    "knip": "6.48.0",
+    "tar": "7.5.24"
   }
 }
